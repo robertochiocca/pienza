@@ -16,42 +16,42 @@ insert into checkins (id, user_id, taken_at) values
 
 -- --------------------------------------------------------- chave composta -----
 select throws_ok(
-  $$insert into measurement_values (checkin_id, user_id, key, side, value)
+  $$insert into measurement_values (checkin_id, user_id, key, side, value, provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
-            '22222222-2222-2222-2222-222222222222', 'waist', 'na', 80)$$,
+            '22222222-2222-2222-2222-222222222222', 'waist', 'na', 80, 'typed')$$,
   '23503',
   null,
   'medida nao pode declarar dono diferente do dono do check-in');
 
 -- ------------------------------------------------------------- vocabulario ----
 select throws_ok(
-  $$insert into measurement_values (checkin_id, user_id, key, side, value)
+  $$insert into measurement_values (checkin_id, user_id, key, side, value, provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
-            '11111111-1111-1111-1111-111111111111', 'waist', 'na', 1700)$$,
+            '11111111-1111-1111-1111-111111111111', 'waist', 'na', 1700, 'typed')$$,
   '23514',
   null,
   'valor absurdo e barrado pela guarda de integridade');
 
 select throws_ok(
-  $$insert into measurement_values (checkin_id, user_id, key, side, value)
+  $$insert into measurement_values (checkin_id, user_id, key, side, value, provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
-            '11111111-1111-1111-1111-111111111111', 'calf', 'na', 38)$$,
+            '11111111-1111-1111-1111-111111111111', 'calf', 'na', 38, 'typed')$$,
   '23514',
   null,
   'medida bilateral exige lado');
 
 select throws_ok(
-  $$insert into measurement_values (checkin_id, user_id, key, side, value)
+  $$insert into measurement_values (checkin_id, user_id, key, side, value, provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
-            '11111111-1111-1111-1111-111111111111', 'waist', 'l', 80)$$,
+            '11111111-1111-1111-1111-111111111111', 'waist', 'l', 80, 'typed')$$,
   '23514',
   null,
   'medida nao bilateral recusa lado');
 
 select lives_ok(
-  $$insert into measurement_values (checkin_id, user_id, key, side, value)
+  $$insert into measurement_values (checkin_id, user_id, key, side, value, provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
-            '11111111-1111-1111-1111-111111111111', 'calf', 'l', 38)$$,
+            '11111111-1111-1111-1111-111111111111', 'calf', 'l', 38, 'typed')$$,
   'medida bilateral com lado e aceita');
 
 -- ---------------------------------------------------------------- baseline ----
@@ -78,29 +78,33 @@ select lives_ok(
 -- ------------------------------------------------------- razoes derivadas -----
 select throws_ok(
   $$insert into proportion_ratios
-      (checkin_id, user_id, axis_key, denominator_kind, status, ratio)
+      (checkin_id, user_id, axis_key, denominator_kind, status, ratio,
+       current_provenance, reference_provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
-            '11111111-1111-1111-1111-111111111111', 'chest', 'baseline', 'ok', 1.0)$$,
+            '11111111-1111-1111-1111-111111111111', 'chest', 'baseline', 'ok', 1.0,
+            'typed', 'typed')$$,
   '23514',
   null,
   'razao contra baseline exige registrar qual baseline foi usado');
 
 select throws_ok(
   $$insert into proportion_ratios
-      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status)
+      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status,
+       current_provenance, reference_provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
             '11111111-1111-1111-1111-111111111111', 'chest', 'baseline',
-            'aaaaaaaa-0000-0000-0000-000000000001', 'ok')$$,
+            'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 'typed', 'typed')$$,
   '23514',
   null,
   'eixo marcado como ok sem razao e rejeitado');
 
 select throws_ok(
   $$insert into proportion_ratios
-      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status, ratio)
+      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status, ratio,
+       current_provenance, reference_provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
             '11111111-1111-1111-1111-111111111111', 'chest', 'baseline',
-            'bbbbbbbb-0000-0000-0000-000000000001', 'ok', 1.0)$$,
+            'bbbbbbbb-0000-0000-0000-000000000001', 'ok', 1.0, 'typed', 'typed')$$,
   '23503',
   null,
   'baseline de outro usuario e rejeitado pela chave composta');
@@ -108,10 +112,11 @@ select throws_ok(
 -- Invalidacao do derivado quando a medida muda.
 insert into proportion_ratios
   (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status,
-   current_value, reference_value, ratio)
+   current_value, reference_value, ratio, current_provenance, reference_provenance)
 values
   ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
-   'core_waist', 'baseline', 'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 80, 82, 0.9756);
+   'core_waist', 'baseline', 'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 80, 82, 0.9756,
+   'typed', 'typed');
 
 update measurement_values set value = 81
  where checkin_id = 'aaaaaaaa-0000-0000-0000-000000000001' and key = 'calf';

@@ -20,7 +20,7 @@ que estiver com pressa. Por isso ela vira gate que reprova o build.
 
 ## Decisão
 
-As mecânicas abaixo não entram no Ryven. Para cada uma anoto por que ela é o reflexo da
+As mecânicas abaixo não entram no Pienza. Para cada uma anoto por que ela é o reflexo da
 categoria, por que recuso, e quanto o gate automático realmente cobre.
 
 ### 1. Streak, sequência, "N semanas seguidas", contador de continuidade

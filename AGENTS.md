@@ -1,4 +1,4 @@
-# Ryven — Prompt de sessão
+# Pienza — Prompt de sessão
 
 ## 0. Autoria
 
@@ -216,7 +216,7 @@ conversa**.
 Estrutura fixa:
 
 ```
-RYVEN — RELATORIO NNNN
+PIENZA — RELATORIO NNNN
 Fase: <n>   Ciclo: <n>   Data: <ISO>
 
 FEITO

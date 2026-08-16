@@ -1,28 +1,31 @@
 -- Vocabulario inicial. Seed e nao migration porque sao dados de referencia que eu
 -- espero editar sem versionar cada ajuste de rotulo como mudanca de schema.
 
+-- `kind` separa o que muda do que ancora. Estrutural e mantida entre check-ins por
+-- desenho: remedir o punho toda semana e atrito com ganho de informacao zero.
+-- Ver docs/decisoes/0007-proveniencia-de-medida.md.
 insert into measurement_keys
-  (key, label_ptbr, unit, bilateral, min_value, max_value, display_order)
+  (key, label_ptbr, unit, bilateral, min_value, max_value, display_order, kind)
 values
   -- As faixas sao propositalmente largas. Elas existem para barrar erro de
   -- digitacao, nao para dizer a alguem que o corpo dele esta fora de uma faixa.
-  ('height',      'Altura',              'cm', false,  50,  260,  1),
-  ('weight',      'Peso',                'kg', false,  20,  400,  2),
-  ('wingspan',    'Envergadura',         'cm', false,  50,  280,  3),
-  ('head',        'Cabeca',              'cm', false,  30,   80,  4),
-  ('neck',        'Pescoco',             'cm', false,  15,   90,  5),
-  ('shoulders',   'Ombros',              'cm', false,  50,  250,  6),
-  ('chest',       'Peito',               'cm', false,  40,  250,  7),
-  ('waist',       'Cintura',             'cm', false,  30,  250,  8),
-  ('hips',        'Quadril',             'cm', false,  40,  250,  9),
-  ('arm_relaxed', 'Braco relaxado',      'cm', true,   10,  100, 10),
-  ('arm_flexed',  'Braco contraido',     'cm', true,   10,  100, 11),
-  ('forearm',     'Antebraco',           'cm', true,   10,   80, 12),
-  ('wrist',       'Punho',               'cm', true,    8,   40, 13),
-  ('thigh',       'Coxa',                'cm', true,   20,  120, 14),
-  ('knee',        'Joelho',              'cm', true,   15,   90, 15),
-  ('calf',        'Panturrilha',         'cm', true,   15,   90, 16),
-  ('ankle',       'Tornozelo',           'cm', true,   10,   60, 17)
+  ('height',      'Altura',              'cm', false,  50,  260,  1, 'structural'),
+  ('weight',      'Peso',                'kg', false,  20,  400,  2, 'variable'),
+  ('wingspan',    'Envergadura',         'cm', false,  50,  280,  3, 'structural'),
+  ('head',        'Cabeca',              'cm', false,  30,   80,  4, 'structural'),
+  ('neck',        'Pescoco',             'cm', false,  15,   90,  5, 'variable'),
+  ('shoulders',   'Ombros',              'cm', false,  50,  250,  6, 'variable'),
+  ('chest',       'Peito',               'cm', false,  40,  250,  7, 'variable'),
+  ('waist',       'Cintura',             'cm', false,  30,  250,  8, 'variable'),
+  ('hips',        'Quadril',             'cm', false,  40,  250,  9, 'variable'),
+  ('arm_relaxed', 'Braco relaxado',      'cm', true,   10,  100, 10, 'variable'),
+  ('arm_flexed',  'Braco contraido',     'cm', true,   10,  100, 11, 'variable'),
+  ('forearm',     'Antebraco',           'cm', true,   10,   80, 12, 'variable'),
+  ('wrist',       'Punho',               'cm', true,    8,   40, 13, 'structural'),
+  ('thigh',       'Coxa',                'cm', true,   20,  120, 14, 'variable'),
+  ('knee',        'Joelho',              'cm', true,   15,   90, 15, 'structural'),
+  ('calf',        'Panturrilha',         'cm', true,   15,   90, 16, 'variable'),
+  ('ankle',       'Tornozelo',           'cm', true,   10,   60, 17, 'structural')
 on conflict (key) do nothing;
 
 -- `head` e `knee` nao sao usadas por nada hoje. Entram agora porque o sistema de

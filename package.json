@@ -1,5 +1,5 @@
 {
-  "name": "ryven",
+  "name": "pienza",
   "version": "0.0.0",
   "private": true,
   "description": "Acompanhamento de composicao e proporcao corporal",
@@ -22,7 +22,8 @@
     "gate:mecanicas": "node scripts/gate-mecanicas-proibidas.mjs",
     "gate:dominio-puro": "node scripts/gate-dominio-puro.mjs",
     "db:test": "bash scripts/db-test.sh",
-    "check": "npm run format && npm run lint && npm run typecheck && npm test && npm run gate:mecanicas && npm run gate:dominio-puro && npm run audit:deps"
+    "check": "npm run format && npm run lint && npm run typecheck && npm test && npm run gate:mecanicas && npm run gate:nome && npm run gate:dominio-puro && npm run audit:deps",
+    "gate:nome": "node scripts/gate-nome-antigo.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

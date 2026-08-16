@@ -1,4 +1,4 @@
-# Ryven
+# Pienza
 
 Your body. Your data. Your evolution.
 
@@ -21,8 +21,11 @@ Este README separa o que existe do que está planejado. Nada da seção Roadmap 
 - Monorepo com npm workspaces e TypeScript estrito (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`)
 - `packages/domain`: unidades canônicas cm/kg, conversão métrico/imperial e arredondamento para a
-  precisão de armazenamento, com testes unitários e de propriedade (Vitest + fast-check), 100% de
-  cobertura e piso que reprova o build
+  precisão de armazenamento, com testes unitários e de propriedade (Vitest + fast-check). A
+  cobertura de 100% com piso que reprova o build vale **para os módulos que existem hoje** — hoje,
+  unidades. Ela não diz nada sobre cálculo de proporção, RLS ou mecânicas proibidas: essas três
+  são cobertas pela suíte pgTAP e pelo gate de mecânicas, que são os gates que de fato protegem
+  o produto
 - Schema completo da Fase 0 em migrations versionadas: check-ins, medidas em formato longo,
   baseline com histórico, razões de proporção derivadas, fotos, consentimento append-only,
   verificação de idade, camada profissional e operação

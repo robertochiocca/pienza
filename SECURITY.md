@@ -2,7 +2,7 @@
 
 ## O que este projeto é
 
-O Ryven é um app de acompanhamento de composição e proporção corporal. Ele tem autenticação,
+O Pienza é um app de acompanhamento de composição e proporção corporal. Ele tem autenticação,
 tem contas de pessoas reais e **guarda dado pessoal sensível**: medidas corporais e fotos do
 corpo, que são dado de saúde.
 
@@ -61,7 +61,7 @@ Estes não são descuidos; são consequências de decisões escritas:
 
 - **Ausência de limite de taxa no ambiente local.** O ambiente local é descartável e roda com
   papéis de teste.
-- **O shim de `auth` e `storage` em `supabase/tests/00_bootstrap_local.sql`.** Ele existe só para
+- **O shim de `auth` e `storage` em `scripts/sql/bootstrap-local.sql`.** Ele existe só para
   a suíte rodar sem Docker e nunca é aplicado em ambiente real. Divergência entre ele e o
   Supabase é bug de teste, e é bem-vinda como relato — mas não é vulnerabilidade.
 - **Faixas de `measurement_keys.min_value/max_value`.** São guarda de digitação. Que sejam largas

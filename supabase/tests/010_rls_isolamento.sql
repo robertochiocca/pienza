@@ -18,11 +18,11 @@ insert into checkins (id, user_id, taken_at) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', now()),
   ('bbbbbbbb-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', now());
 
-insert into measurement_values (checkin_id, user_id, key, side, value) values
+insert into measurement_values (checkin_id, user_id, key, side, value, provenance) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
-   'waist', 'na', 82.5),
+   'waist', 'na', 82.5, 'typed'),
   ('bbbbbbbb-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222',
-   'waist', 'na', 91.0);
+   'waist', 'na', 91.0, 'typed');
 
 insert into baselines (user_id, checkin_id, reason) values
   ('11111111-1111-1111-1111-111111111111', 'aaaaaaaa-0000-0000-0000-000000000001', 'initial');
@@ -34,11 +34,11 @@ insert into photos (checkin_id, user_id, angle, storage_path, consent_store_at) 
 
 insert into proportion_ratios
   (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id,
-   status, current_value, reference_value, ratio)
+   status, current_value, reference_value, ratio, current_provenance, reference_provenance)
 values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
    'core_waist', 'baseline', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'ok', 82.5, 82.5, 1.0);
+   'ok', 82.5, 82.5, 1.0, 'typed', 'typed');
 
 insert into consent_documents (id, purpose, version, body_md, effective_from) values
   ('cccccccc-0000-0000-0000-000000000001', 'store_measurements', 1, 'texto', now());
@@ -164,10 +164,11 @@ select throws_ok(
 -- Dado derivado nao se escreve pelo cliente.
 select throws_ok(
   $$insert into proportion_ratios
-      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status, ratio)
+      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status,
+       ratio, current_provenance, reference_provenance)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
             '11111111-1111-1111-1111-111111111111', 'chest', 'baseline',
-            'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 9.9)$$,
+            'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 9.9, 'typed', 'typed')$$,
   '42501',
   null,
   'A nao insere razao de proporcao');

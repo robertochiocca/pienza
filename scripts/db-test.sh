@@ -18,11 +18,11 @@
 # continue fiel ao Supabase conforme as migrations crescem. Rapido no loop, fiel na
 # fronteira.
 #
-# Modo por RYVEN_DB_MODO. Conexao por PGHOST / PGPORT / PGUSER / PGPASSWORD.
+# Modo por PIENZA_DB_MODO. Conexao por PGHOST / PGPORT / PGUSER / PGPASSWORD.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MODO="${RYVEN_DB_MODO:-shim}"
+MODO="${PIENZA_DB_MODO:-shim}"
 
 export PGHOST="${PGHOST:-/tmp}"
 export PGPORT="${PGPORT:-55432}"
@@ -32,7 +32,7 @@ falhas=0
 
 case "$MODO" in
   shim)
-    DB="ryven_test_$$"
+    DB="pienza_test_$$"
     limpar() { dropdb --if-exists "$DB" >/dev/null 2>&1 || true; }
     trap limpar EXIT
     createdb "$DB"
@@ -54,7 +54,7 @@ case "$MODO" in
     ;;
 
   *)
-    echo "RYVEN_DB_MODO invalido: $MODO (use shim ou supabase)" >&2
+    echo "PIENZA_DB_MODO invalido: $MODO (use shim ou supabase)" >&2
     exit 2
     ;;
 esac

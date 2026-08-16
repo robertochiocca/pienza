@@ -4,7 +4,7 @@
 # de todo commit nao passa por aqui: ele usa Postgres cru mais scripts/sql/bootstrap-local.sql.
 # Ver scripts/db-test.sh e docs/decisoes/0003-modelo-de-dados-e-rls.md.
 
-project_id = "ryven"
+project_id = "pienza"
 
 [api]
 enabled = true

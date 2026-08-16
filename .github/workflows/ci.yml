@@ -117,7 +117,7 @@ jobs:
       # aconteceu neste repositorio.
       - name: Suite pgTAP contra a pilha real
         env:
-          RYVEN_DB_MODO: supabase
+          PIENZA_DB_MODO: supabase
           PGHOST: 127.0.0.1
           PGPORT: '54322'
           PGUSER: postgres
