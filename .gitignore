@@ -20,5 +20,18 @@ coverage/
 supabase/.temp/
 supabase/.branches/
 
+# Config local de ferramenta, arquivo de sessao, cache de agente. Nada disso
+# versionado: o repositorio guarda o resultado, nao o processo de quem digitou.
+.claude/
+.cursor/
+.cursorrules
+.aider*
+.continue/
+.windsurf/
+.github/copilot-instructions.md
+*.session.json
+.vscode/
+.idea/
+
 *.log
 .DS_Store
