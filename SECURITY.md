@@ -21,16 +21,19 @@ houver produção, esta seção muda e passa a haver prazo de resposta.
 
 ## Como reportar
 
-Escreva para `<<contato de segurança a definir>>` antes de abrir issue pública.
+Use o **Private Vulnerability Reporting** deste repositório: aba **Security** → **Report a
+vulnerability**. É canal privado do GitHub, e não exige que você tenha meu e-mail.
 
-Não abra issue no GitHub para vulnerabilidade que exponha dado de conta. Issue é pública desde o
+Não abra issue pública para vulnerabilidade que exponha dado de conta. Issue é pública desde o
 primeiro segundo.
+
+Não há SLA. Isto é projeto de uma pessoa só, e prometer prazo de resposta que eu não consigo
+sustentar é pior que não prometer nada.
 
 Inclua, se possível: o que você conseguiu alcançar, o passo a passo, e se precisou de conta
 autenticada. Não preciso de exploit armado; preciso conseguir reproduzir.
 
-Não tenho programa de recompensa. Sou um desenvolvedor sozinho e digo isso na frente para não
-desperdiçar o tempo de ninguém.
+Não tenho programa de recompensa. Digo isso na frente para não desperdiçar o tempo de ninguém.
 
 ## Dentro do escopo
 

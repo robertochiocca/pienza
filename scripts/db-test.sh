@@ -1,37 +1,63 @@
 #!/usr/bin/env bash
 #
-# Aplica as migrations num banco descartavel e roda a suite pgTAP.
+# Roda a suite pgTAP em dois modos.
 #
-# Nao usa a CLI do Supabase de proposito: a CLI sobe uma pilha inteira em Docker, e
-# o que precisa ser verificado aqui e apenas o que o Postgres decide — restricoes,
-# gatilhos e RLS. Um Postgres cru mais o shim de `supabase/tests/00_bootstrap_local.sql`
-# cobrem isso e rodam em segundos, o que e a diferenca entre a suite rodar em todo
-# commit e a suite rodar quando alguem lembra.
+#   shim (padrao)  Postgres cru mais scripts/sql/bootstrap-local.sql, que reproduz a
+#                  superficie do Supabase de que as migrations dependem: schema auth,
+#                  auth.uid(), papeis e schema storage. Cria um banco descartavel,
+#                  aplica migrations e seed, roda os testes e apaga o banco. Leva
+#                  segundos, entao roda em todo commit.
+#
+#   supabase       Contra a pilha real ja de pe (`supabase start`), que aplicou as
+#                  migrations sozinha. Nao aplica o shim: la auth, storage e os papeis
+#                  ja existem de verdade, e aplicar o shim mascararia justamente a
+#                  divergencia que este modo procura. Leva minutos, entao roda so na
+#                  fronteira para main.
+#
+# A razao de existirem os dois: o shim e uma reproducao minha, e nada garante que ela
+# continue fiel ao Supabase conforme as migrations crescem. Rapido no loop, fiel na
+# fronteira.
+#
+# Modo por RYVEN_DB_MODO. Conexao por PGHOST / PGPORT / PGUSER / PGPASSWORD.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MODO="${RYVEN_DB_MODO:-shim}"
+
 export PGHOST="${PGHOST:-/tmp}"
 export PGPORT="${PGPORT:-55432}"
 export PGUSER="${PGUSER:-postgres}"
 
-DB="ryven_test_$$"
 falhas=0
 
-limpar() {
-  dropdb --if-exists "$DB" >/dev/null 2>&1 || true
-}
-trap limpar EXIT
+case "$MODO" in
+  shim)
+    DB="ryven_test_$$"
+    limpar() { dropdb --if-exists "$DB" >/dev/null 2>&1 || true; }
+    trap limpar EXIT
+    createdb "$DB"
 
-createdb "$DB"
+    echo "== shim local (auth, storage, papeis) =="
+    psql -q -X -v ON_ERROR_STOP=1 -d "$DB" -f "$ROOT/scripts/sql/bootstrap-local.sql"
 
-echo "== shim local (auth, storage, papeis) =="
-psql -q -X -v ON_ERROR_STOP=1 -d "$DB" -f "$ROOT/supabase/tests/00_bootstrap_local.sql"
+    echo "== migrations =="
+    for arquivo in "$ROOT"/supabase/migrations/*.sql; do
+      echo "   $(basename "$arquivo")"
+      psql -q -X -v ON_ERROR_STOP=1 -d "$DB" -f "$arquivo"
+    done
+    ;;
 
-echo "== migrations =="
-for arquivo in "$ROOT"/supabase/migrations/*.sql; do
-  echo "   $(basename "$arquivo")"
-  psql -q -X -v ON_ERROR_STOP=1 -d "$DB" -f "$arquivo"
-done
+  supabase)
+    DB="${PGDATABASE:-postgres}"
+    echo "== pilha real: migrations ja aplicadas por supabase start =="
+    psql -q -X -v ON_ERROR_STOP=1 -d "$DB" -c 'create extension if not exists pgtap'
+    ;;
+
+  *)
+    echo "RYVEN_DB_MODO invalido: $MODO (use shim ou supabase)" >&2
+    exit 2
+    ;;
+esac
 
 echo "== seed =="
 for arquivo in "$ROOT"/supabase/seed/*.sql; do
@@ -75,9 +101,9 @@ done
 
 if [ "$falhas" -gt 0 ]; then
   echo
-  echo "suite de banco: $falhas arquivo(s) com falha"
+  echo "suite de banco ($MODO): $falhas arquivo(s) com falha"
   exit 1
 fi
 
 echo
-echo "suite de banco: tudo verde"
+echo "suite de banco ($MODO): tudo verde"

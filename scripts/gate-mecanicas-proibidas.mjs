@@ -135,6 +135,11 @@ const RULES = [
     ],
   },
   {
+    id: 'assimetria',
+    item: 'Metrica de assimetria entre lados (ADR 0005)',
+    patterns: [/\bassimetria/i, /\basymmetr/i, /\bdesequilibrio\s+entre\s+lados\b/i],
+  },
+  {
     id: 'peso-como-progresso',
     item: 'Linha de peso apresentada como progresso',
     proximity: { left: /\b(peso|weight)\b/i, right: /\bprogress/i, window: 48 },
@@ -219,6 +224,8 @@ const FIXTURES_POSITIVAS = [
   ['ingestao', 'const alvo = 2000; // kcal'],
   ['ingestao', 'const deficit = 500;'],
   ['corpo-simulado', 'titulo: "antes e depois"'],
+  ['assimetria', 'const assimetriaBraco = dir - esq;'],
+  ['assimetria', 'export function computeAsymmetry(l, r) {}'],
   ['peso-como-progresso', 'label: "seu progresso de peso"'],
   ['inspiracao-como-alvo', 'const d = distanciaAteInspiracao(meta);'],
 ];
@@ -231,6 +238,7 @@ const FIXTURES_NEGATIVAS = [
   'const weight = medidas.weight;',
   '<ProgressBar value={0.4} />',
   'const experimento = false;',
+  'const mediaDosLados = (l + r) / 2;',
 ];
 
 function autoTeste() {

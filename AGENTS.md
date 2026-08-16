@@ -99,6 +99,11 @@ o que inverte quase todo o escopo.
   mental — dado sensível pelo art. 5º, II da LGPD, sem consentimento e sem base clínica.
   E a copy nunca se dirige à pessoa: sem "notamos que você".
 - **Vocabulário de medidas em formato longo**, com `head` e `knee` já incluídos.
+- **Medida bilateral entra no eixo pela média.** Os dois lados são sempre gravados e sempre
+  exibidos crus na tela de medidas. Maior lisonjeia e salta se o lado dominante mudar entre
+  check-ins; lado fixo é arbitrário. **E nenhuma métrica de assimetria é computada** — fita
+  métrica na própria mão tem erro que frequentemente supera a assimetria real, e separar um do
+  outro exigiria um limiar que eu teria que inventar. Ver ADR 0005.
 - **Supabase em `sa-east-1`.** DPA antes de qualquer dado real.
 - **Nada de prescrição de dieta ou treino** enquanto não houver profissional CREF/CRN no fluxo,
   com a constraint de banco que rejeita `status = 'delivered'` sem assinatura.
@@ -195,3 +200,50 @@ contrário fechando ciclo em cima de decisão visual.
   fonte não existe, a resposta é "não tenho fonte" — e isso é resposta aceitável.
 - Quando notar que uma instrução minha contradiz outra. Já aconteceu duas vezes neste projeto e
   as duas vezes você estava certo.
+
+---
+
+## 6. Relatório de fim de ciclo
+
+Todo relatório de fim de ciclo ou de fim de fase é **escrito em arquivo antes de aparecer na
+conversa**.
+
+- Caminho: `docs/relatorios/NNNN-<fase>-<slug>.txt`, `NNNN` sequencial com zeros à esquerda
+- Texto puro. Sem markdown decorativo, sem tabela de arte ASCII, sem emoji
+- Autocontido: quem lê fora do repositório precisa entender sem abrir arquivo nenhum
+- Segue a seção 0 — sem menção a ferramenta, sessão ou assistente
+
+Estrutura fixa:
+
+```
+RYVEN — RELATORIO NNNN
+Fase: <n>   Ciclo: <n>   Data: <ISO>
+
+FEITO
+  <o que mudou, com caminho de arquivo>
+
+GATE
+  <cada gate: nome, resultado, número quando houver>
+
+DECIDIDO
+  <decisão + o raciocínio que levou a ela, não só o resultado>
+
+DEFEITOS ENCONTRADOS
+  <o que quebrou durante o trabalho e como foi corrigido>
+
+DISCORDÂNCIAS
+  <onde você acha que uma instrução minha está errada, e por quê>
+
+EM ABERTO
+  <item + o que exatamente eu preciso decidir>
+
+BLOQUEADO EM MIM
+  <o que não anda sem minha resposta>
+```
+
+**DECIDIDO** carrega o raciocínio, não só a conclusão. **DISCORDÂNCIAS** não fica em branco por
+educação — se não há discordância em um ciclo inteiro, provavelmente não se olhou. As duas
+correções mais valiosas até agora, o denominador do hexágono e a saturação do eixo de cintura,
+vieram exatamente daí.
+
+Ao terminar: escreva o arquivo, depois cole o conteúdo integral na resposta.

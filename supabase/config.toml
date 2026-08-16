@@ -1,0 +1,46 @@
+# Configuracao da CLI do Supabase para o ambiente local.
+#
+# Usada apenas pelo job de fidelidade do CI, que roda na fronteira para main. O loop
+# de todo commit nao passa por aqui: ele usa Postgres cru mais scripts/sql/bootstrap-local.sql.
+# Ver scripts/db-test.sh e docs/decisoes/0003-modelo-de-dados-e-rls.md.
+
+project_id = "ryven"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Acompanha a versao padrao dos projetos novos no Supabase. A suite do loop roda em
+# Postgres 16; divergencia de comportamento entre as duas versoes e exatamente uma
+# das coisas que o job de fidelidade existe para revelar.
+major_version = 17
+
+[db.seed]
+# O seed e aplicado por scripts/db-test.sh, para ser o mesmo caminho nos dois modos.
+# Deixar a CLI aplicar tambem duplicaria o insert.
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+
+[storage]
+enabled = true
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[realtime]
+enabled = false
+
+[edge_runtime]
+enabled = false

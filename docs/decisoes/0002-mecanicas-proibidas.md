@@ -100,6 +100,18 @@ até outro corpo. A sobreposição do gráfico é sempre você hoje contra você
 `gate: parcial` — pego "inspiração" perto de "meta/alvo/target/score". Não pego a sobreposição
 feita só em código de renderização.
 
+### 11. Métrica de assimetria entre lados
+
+Reflexo porque o dado já está no banco — os dois lados são gravados — e um subtrair é a coisa
+mais fácil de escrever no repositório inteiro. Recuso porque fita métrica na mão da própria
+pessoa tem erro de medição que frequentemente supera a assimetria real: "seu braço direito está
+0,4 cm maior" é ruído apresentado como achado, e separar um do outro exigiria um limiar de erro
+plausível que eu teria que inventar. Além disso, assimetria tem causas que vão de dominância
+manual a lesão, e nenhum rótulo que eu colocasse seria outra coisa que afirmação clínica sem
+base. Os dois lados aparecem crus, lado a lado, sem delta. Ver ADR 0005.
+`gate: parcial` — pego o vocabulário. Não pego uma subtração entre lados escrita sem nomear o
+que ela é.
+
 ## Consequências
 
 Aceito que o app vai reter menos que os concorrentes no primeiro mês. As mecânicas acima existem

@@ -81,3 +81,50 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
         run: npm run db:test
+
+  # O job acima roda contra um shim de auth e storage, que e rapido e portanto roda
+  # em todo commit — mas e uma reproducao minha da superficie do Supabase, e nada
+  # garante que ela continue fiel. Este job fecha essa lacuna onde ela importa: na
+  # fronteira para main, contra a pilha real, com o custo de minutos em vez de
+  # segundos. Rapido no loop, fiel na fronteira.
+  banco-fidelidade:
+    name: migrations contra a pilha real do Supabase
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          # Versao exata, nao `latest`: a CLI decide se este job passa, e uma major
+          # nova chegando sozinha reprovaria o build sem ninguem ter mudado nada.
+          # Este numero nunca foi executado neste repositorio — nao ha Docker no
+          # ambiente onde o job foi escrito — entao ele e um chute informado ate a
+          # primeira execucao real, na primeira PR para main.
+          version: 2.114.0
+
+      # `supabase start` aplica supabase/migrations na ordem contra a imagem real do
+      # Postgres do Supabase, com auth, storage e papeis de verdade. Se alguma
+      # migration so funciona por causa de algo que o meu shim fornece e o Supabase
+      # nao, ou colide com algo que o Supabase ja cria, quebra aqui.
+      - name: Subir a pilha e aplicar as migrations
+        run: supabase start
+
+      # A suite roda pelo mesmo runner, em modo supabase: sem shim, contra o banco
+      # que a CLI expoe. Nao uso `supabase test db` porque ele varreria tudo que
+      # estiver em supabase/tests, e o criterio dele nao reprova divergencia entre o
+      # plano declarado e o numero de assercoes executadas — que e uma falha que ja
+      # aconteceu neste repositorio.
+      - name: Suite pgTAP contra a pilha real
+        env:
+          RYVEN_DB_MODO: supabase
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: npm run db:test
+
+      - name: Derrubar
+        if: always()
+        run: supabase stop --no-backup
