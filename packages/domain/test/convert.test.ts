@@ -7,7 +7,7 @@ import {
   kg,
   kilogramsToPounds,
   poundsToKilograms,
-} from '../src/units';
+} from '../src';
 
 const storableCm = fc.integer({ min: 0, max: 30_000 }).map((cents) => cm(cents / 100));
 const storableKg = fc.integer({ min: 0, max: 40_000 }).map((grams) => kg(grams / 100));

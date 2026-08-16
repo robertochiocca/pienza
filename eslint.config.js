@@ -42,7 +42,22 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.js'],
+    // Arquivos JavaScript soltos — este proprio config e os scripts de gate — nao
+    // pertencem a nenhum tsconfig, e o typescript-eslint com `projectService`
+    // reprova com "was not found by the project service" em vez de simplesmente
+    // ignora-los. Precisa cobrir .mjs e .cjs alem de .js: com o padrao so em
+    // `**/*.js`, os dois scripts de `scripts/` quebravam o lint.
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      // Declarados a mao em vez de instalar o pacote `globals`. Sao os tres unicos
+      // globais que os scripts de gate usam, e a lista curta e explicita: se um
+      // quarto aparecer, o lint reprova e alguem decide se ele devia estar ali.
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        URL: 'readonly',
+      },
+    },
   },
 );

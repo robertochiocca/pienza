@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { cm, kg, roundToStorage, STORAGE_DECIMALS } from '../src/units';
+import { cm, kg, roundToStorage, STORAGE_DECIMALS } from '../src';
 
 /** Valor com no maximo `STORAGE_DECIMALS` casas, gerado a partir de centesimos inteiros. */
 const storableCentimeters = fc.integer({ min: 0, max: 30_000 }).map((cents) => cents / 100);

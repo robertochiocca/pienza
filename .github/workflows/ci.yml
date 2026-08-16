@@ -9,17 +9,23 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Comeca no minimo. Nenhum job aqui escreve no repositorio nem publica nada, entao
+# nao ha o que subir. Qualquer permissao adicional entra com o motivo escrito ao lado.
 permissions:
   contents: read
 
 jobs:
-  checks:
-    name: format, lint, typecheck, test
+  codigo:
+    name: formato, lint, tipos, testes, gates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Actions por SHA completo e nao por tag: tag e um ponteiro que o dono do
+      # repositorio pode mover para outro commit a qualquer momento, e junto com ela
+      # move o que roda dentro do meu CI. O comentario ao lado registra a versao
+      # legivel, ja que o SHA sozinho nao diz nada.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -35,9 +41,43 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Testes
+      # Cobertura do dominio tem piso configurado no vitest. Abaixo do piso o vitest
+      # sai com codigo de erro, entao este passo reprova sozinho.
+      - name: Testes do dominio
         run: npm test
 
-  # O job de banco (migrations + suite pgTAP de RLS) entra junto com as migrations.
-  # Nao existe aqui ainda porque nao ha nada para ele rodar, e um job verde que nao
-  # verifica nada e' pior que nenhum job.
+      - name: Gate de mecanicas proibidas
+        run: npm run gate:mecanicas
+
+      - name: Gate de dominio puro
+        run: npm run gate:dominio-puro
+
+      - name: Auditoria de dependencia
+        run: npm run audit:deps
+
+  banco:
+    name: migrations e RLS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Postgres do runner mais pgTAP, em vez da CLI do Supabase em Docker. O que
+      # esta suite verifica e o que o Postgres decide — restricoes, gatilhos e RLS —
+      # e isso nao precisa da pilha inteira. Ver docs/decisoes/0003.
+      - name: Instalar Postgres e pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-16 postgresql-16-pgtap
+
+      - name: Subir o cluster
+        run: |
+          sudo systemctl start postgresql@16-main || sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -c "alter user postgres password 'postgres'"
+
+      - name: Migrations, seed e suite pgTAP
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: npm run db:test
