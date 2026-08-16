@@ -2,91 +2,99 @@
 
 Your body. Your data. Your evolution.
 
-Acompanhamento de composição e proporção corporal. O usuário registra medidas, faz check-ins
-periódicos e vê a própria evolução comparada **com ele mesmo** — nunca com outra pessoa e nunca
-com um ideal externo.
+Acompanhamento de composição e proporção corporal. A pessoa registra medidas, faz check-ins na
+cadência que ela escolher, e vê a própria mudança comparada **com ela mesma** — nunca com outra
+pessoa e nunca com um ideal externo.
 
 ---
 
 ## Estado do projeto
 
-**Fase 0 — Fundação. Em andamento.**
+**Fase 0 — Fundação. Em andamento.** Não existe aplicativo ainda.
 
-Este README separa rigorosamente o que existe do que está planejado. Nada da seção Roadmap está
-implementado.
+Este README separa o que existe do que está planejado. Nada da seção Roadmap está implementado.
 
 ---
 
 ## Implementado
 
-- Monorepo com npm workspaces, TypeScript em modo estrito (`noUncheckedIndexedAccess`,
+- Monorepo com npm workspaces e TypeScript estrito (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`)
-- `packages/domain`: unidades canônicas (cm/kg), conversão métrico/imperial e arredondamento
-  para a precisão de armazenamento, com testes unitários e de propriedade (Vitest + fast-check)
-- Regra de lint que impede `packages/domain` de importar React, React Native, Expo ou APIs de
-  Node — o domínio precisa continuar testável fora do app
-- CI no GitHub Actions: formatação, lint, typecheck e testes
+- `packages/domain`: unidades canônicas cm/kg, conversão métrico/imperial e arredondamento para a
+  precisão de armazenamento, com testes unitários e de propriedade (Vitest + fast-check), 100% de
+  cobertura e piso que reprova o build
+- Schema completo da Fase 0 em migrations versionadas: check-ins, medidas em formato longo,
+  baseline com histórico, razões de proporção derivadas, fotos, consentimento append-only,
+  verificação de idade, camada profissional e operação
+- RLS em todas as tabelas, com suíte pgTAP de 38 asserções cobrindo isolamento entre contas e as
+  travas de domínio
+- Gates que reprovam o build: mecânicas proibidas, pureza do domínio, auditoria de dependência,
+  cobertura, formatação, lint e tipos
+- CI no GitHub Actions com Actions referenciadas por SHA completo
 
 ## Roadmap
 
 Nada abaixo existe hoje.
 
-### Fase 0 — restante
-
-- Migrations do schema (check-ins, medidas em formato longo, fotos, consentimento, planos)
-- RLS em todas as tabelas, com suíte pgTAP rodando em CI
-- Projeto Supabase local e seeds do vocabulário de medidas
-
 ### Fase 1 — Medidas e hexágono
 
-- Formulário de medidas
-- Cálculo de proporção contra o baseline do próprio usuário, determinístico, sem LLM
-- Hexágono em `react-native-svg`, com sobreposição de dois períodos
+- Formulário de medidas — o problema central da fase é a velocidade de entrada, não o gráfico
+- Cálculo de proporção contra o baseline, determinístico, sem LLM
+- Hexágono em `react-native-svg`, com transição entre dois períodos
 
 ### Fase 2 — Check-in e histórico
 
 - Fotos com upload privado e consentimento por evento
-- Timeline e comparação temporal
-- Card compartilhável via share sheet do sistema
+- Histórico e comparação temporal
+- Card compartilhável pelo share sheet do sistema
 
 ### Fase 3 — Onboarding
 
-- Verificação de idade, consentimentos LGPD, exclusão de conta
-- Modo de referência externa (opt-in, desligado por padrão)
+- Verificação de idade, consentimentos, exclusão de conta e exportação
+- Modo de referência externa, opt-in e desligado por padrão
 
 ### Fase 4 — Camada profissional
 
-- Rascunho de plano por IA atrás de gate de revisão e assinatura por profissional CREF/CRN
+- Rascunho de plano por IA atrás de revisão e assinatura de profissional CREF/CRN
 
 ---
 
-## Restrições que o código precisa respeitar
+## Restrições que o código respeita
 
-Estão detalhadas em `docs/`. Resumo do que não é negociável:
+Detalhadas em `docs/decisoes/`. O resumo:
 
-- O app **não prescreve dieta nem treino**. Plano só é entregue depois de revisado e assinado
-  por profissional habilitado, e isso é uma constraint de banco, não uma convenção.
-- O app **nunca gera imagem simulada** do corpo futuro do usuário.
-- O hexágono é **100% determinístico**, calculado a partir de medidas. Nenhum LLM participa.
-- Nenhuma comparação entre usuários. Nenhum ideal externo no denominador (Fase 1).
-- Medidas e fotos são dado pessoal sensível. Bucket privado, RLS por usuário, URLs assinadas de
-  TTL curto, exclusão real.
-- Nenhum segredo no cliente.
+- O app **não prescreve dieta nem treino**. Plano só chega a quem usa depois de revisado e
+  assinado por profissional registrado, e isso é restrição de banco, não convenção de código
+- O app **nunca gera imagem** do corpo futuro de ninguém
+- O hexágono é **determinístico**, calculado a partir de medidas. Nenhum LLM participa
+- O denominador é o baseline da própria pessoa. Sem ideal externo, sem inversão de eixo, sem
+  comparação entre usuários
+- Nenhuma mecânica que premie restrição — lista escrita e com gate em
+  `docs/decisoes/0002-mecanicas-proibidas.md`
+- Medidas e fotos são dado sensível: bucket privado, RLS por conta, URL assinada de vida curta
+- Nenhum segredo no cliente
 
 ## Desenvolvimento
 
 ```bash
 npm install
-npm run check     # format + lint + typecheck + test
+npm run check     # formato, lint, tipos, testes, gates
+npm run db:test   # migrations, seed e suíte pgTAP
 ```
 
-Requer Node conforme `.nvmrc`.
+`db:test` precisa de um Postgres alcançável e da extensão pgTAP. Ele cria um banco descartável,
+aplica as migrations e apaga o banco no fim. Configure por `PGHOST`, `PGPORT` e `PGUSER`.
+
+Node conforme `.nvmrc`.
 
 ## Estrutura
 
 ```
-packages/domain/   TypeScript puro, testável sem React Native
-apps/mobile/       Expo (entra na Fase 1)
-supabase/          migrations, seeds, testes pgTAP
-docs/              propostas, decisões (ADRs) e notas legais com fonte citada
+packages/domain/     TypeScript puro, testável sem React Native
+apps/mobile/         Expo (entra na Fase 1)
+supabase/migrations/ schema versionado
+supabase/tests/      suíte pgTAP
+scripts/             gates e runner de banco
+docs/decisoes/       ADRs
+docs/legal/          notas com fonte citada
 ```

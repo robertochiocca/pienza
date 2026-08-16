@@ -1,13 +1,13 @@
 # Sistemas de proporção — nota de fonte
 
-Status: **não implementado**. O modo de referência externa foi movido para a Fase 3, opt-in e
-desligado por padrão. Este arquivo existe para que a correção abaixo não se perca até lá.
+Status: **não implementado**. O modo de referência externa foi para a Fase 3, opt-in e desligado
+por padrão (ADR 0001). Escrevi esta nota para que a correção abaixo não se perca até lá.
 
-## Correção registrada
+## Correção que eu preciso registrar
 
-A seção 5 do brief original atribuía a Steve Reeves um conjunto de coeficientes que é de **John
-McCallum**. São dois sistemas distintos, com estruturas de dependência diferentes. Nenhum dos
-dois pode ser gravado sob o nome do outro.
+Eu tinha atribuído a Steve Reeves um conjunto de coeficientes que é de **John McCallum**. Misturei
+dois sistemas distintos, com estruturas de dependência diferentes. Nenhum dos dois pode ser
+gravado sob o nome do outro.
 
 ### Cadeia de John McCallum
 
@@ -33,26 +33,26 @@ Ancora cada segmento em um osso ou segmento distinto; o tronco sai do quadril.
 | cintura     | quadril   | 0,86        |
 | coxa        | joelho    | 1,75        |
 
-Fonte declarada pelo autor do projeto: Steve Reeves com John Little, _Building the Classic
-Physique: The Natural Way_, 1995. A citação exata precisa ser conferida contra o exemplar antes
-de ir para `source_citation`.
+Fonte que eu tenho para o segundo: Steve Reeves com John Little, _Building the Classic Physique:
+The Natural Way_, 1995. **Preciso conferir a citação exata contra o exemplar antes de gravá-la
+em `source_citation`.** Enquanto eu não fizer isso, o modelo não entra ativo.
 
 ## Limitações que precisam viajar junto com os dados
 
-Nenhum dos dois sistemas é clínico ou antropométrico. São padrões estéticos masculinos de meados
-do século XX, derivados em boa parte das medidas de competição de um único homem. Consequências
-para o schema, quando o modo de referência for construído:
+Nenhum dos dois é clínico ou antropométrico. São padrões estéticos masculinos de meados do
+século XX, derivados em boa parte das medidas de competição de um único homem. O que isso obriga,
+quando eu construir o modo de referência:
 
-1. O registro do modelo carrega `evidence_grade` além da citação, com `'anecdotal'` para ambos.
-   Um schema que não distingue uma referência da OMS de um livro de fisiculturismo de 1995 está
-   mentindo por omissão.
+1. O registro carrega `evidence_grade`, e para ambos o valor é `anecdotal`. Um schema que não
+   distingue uma referência da OMS de um livro de fisiculturismo de 1995 está mentindo por
+   omissão.
 2. `applies_to` explícito. Aplicar qualquer um dos dois a um corpo feminino produz desequilíbrio
-   por construção. Sem modelo aplicável, o eixo retorna `model_not_applicable` e a UI diz isso,
-   em vez de calcular calado com o modelo errado.
+   por construção. Sem modelo aplicável, o eixo retorna indisponível com motivo, e a tela mostra
+   o motivo — em vez de calcular calado com o modelo errado.
 3. Nenhum dos dois cobre **circunferência de ombros**. O eixo Ombros/Costas fica fora do modo de
-   referência até existir fonte. No modo baseline não há problema: o denominador é a medida
-   anterior do próprio usuário.
-4. O sistema Reeves exige **circunferência de cabeça e de joelho**. As chaves `head` e `knee`
-   entram no vocabulário de medidas já na Fase 0 — custa uma linha de seed e evita migração.
+   referência até existir fonte. No modo baseline isso não é problema, porque o denominador é a
+   medida anterior da própria pessoa.
+4. Reeves exige **circunferência de cabeça e de joelho**. As chaves `head` e `knee` já estão no
+   vocabulário desde a Fase 0: custou uma linha de seed e evita migração com dado em produção.
 5. Qualquer limiar de segurança usado junto com o modo de referência precisa de assinatura de
    profissional habilitado. Não de citação encontrada na web.
