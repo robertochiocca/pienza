@@ -107,14 +107,15 @@ select is_empty(
 
 delete from measurement_values where user_id = '11111111-1111-1111-1111-111111111111';
 
-reset role;
+-- A confirmacao e feita como o proprio A, e nao como superusuario: se a linha
+-- sobreviveu, quem tem que enxergar isso e o dono dela.
+set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 select is(
   (select count(*)::int from measurement_values
     where user_id = '11111111-1111-1111-1111-111111111111'),
   1,
   'DELETE de B nao removeu a medida de A');
 
-set local role authenticated;
 set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
 
 -- B nao consegue plantar linha em nome de A.

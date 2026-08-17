@@ -58,6 +58,9 @@ jobs:
       - name: Gate de segredos
         run: npm run gate:segredos
 
+      - name: Gate de papel da suite
+        run: npm run gate:papel
+
       - name: Gate de dominio puro
         run: npm run gate:dominio-puro
 

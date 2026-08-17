@@ -18,6 +18,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NEGATIVAS, POSITIVAS } from './fixtures/nome.fixtures.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -40,7 +41,7 @@ const SCAN_EXTENSIONS = new Set([
   '.sh',
 ]);
 
-const SKIP_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', '.expo', '.git']);
+const SKIP_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', '.expo', '.git', 'fixtures']);
 
 /**
  * Registro historico: o nome antigo aparece aqui por ser o assunto, e apagar seria
@@ -49,6 +50,7 @@ const SKIP_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', '.expo', '
  * aqui por decisao, nao por padrao.
  */
 const ALLOWLIST = new Set([
+  'scripts/fixtures/nome.fixtures.mjs',
   'docs/decisoes/0006-nome-pienza.md',
   'docs/relatorios/0001-fase-0-encerramento.txt',
   'CHANGELOG.md',
@@ -79,29 +81,12 @@ function scanLine(line) {
   return hit ? hit[0] : null;
 }
 
-const FIXTURES_POSITIVAS = [
-  'const nome = "Ryven";',
-  'com.robertochiocca.ryven',
-  'RYVEN_DB_MODO=shim',
-  'import { cm } from "@ryven/domain";',
-  'DB="ryven_test_$$"',
-];
-
-const FIXTURES_NEGATIVAS = [
-  'const nome = "Pienza";',
-  'com.robertochiocca.pienza',
-  'import { cm } from "@pienza/domain";',
-  'const derived = true;',
-  'const driven = false;',
-  'PIENZA_DB_MODO=shim',
-];
-
 function autoTeste() {
   const falhas = [];
-  for (const linha of FIXTURES_POSITIVAS) {
+  for (const linha of POSITIVAS) {
     if (!scanLine(linha)) falhas.push(`nao acusou: ${linha}`);
   }
-  for (const linha of FIXTURES_NEGATIVAS) {
+  for (const linha of NEGATIVAS) {
     const hit = scanLine(linha);
     if (hit) falhas.push(`acusou indevidamente "${hit}": ${linha}`);
   }
@@ -111,7 +96,7 @@ function autoTeste() {
     console.error('');
     process.exit(1);
   }
-  const total = FIXTURES_POSITIVAS.length + FIXTURES_NEGATIVAS.length;
+  const total = POSITIVAS.length + NEGATIVAS.length;
   console.log(`auto-teste do gate de nome: ${total} casos ok`);
 }
 

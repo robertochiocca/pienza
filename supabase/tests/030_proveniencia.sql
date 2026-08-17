@@ -14,6 +14,10 @@ insert into checkins (id, user_id, taken_at) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', now()),
   ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', now());
 
+-- ------------------------------------------------------------ como o app roda ---
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
 -- ------------------------------------------------------------- classificacao ---
 select is(
   (select array_agg(key order by key)::text
@@ -26,6 +30,9 @@ select is(
   11,
   'as demais sao variaveis');
 
+reset role;
+-- papel: superusuario porque measurement_keys e vocabulario, escrito por seed e
+-- migration; `authenticated` so le. O teste aqui e da restricao que a seed enfrenta.
 -- Chave nova tem que declarar a classificacao: sem default, esquecer reprova em vez
 -- de herdar um palpite.
 select throws_ok(
@@ -37,6 +44,9 @@ select throws_ok(
   'chave de medida nova exige classificacao explicita');
 
 -- --------------------------------------------------------------- proveniencia --
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
 select throws_ok(
   $$insert into measurement_values (checkin_id, user_id, key, side, value)
     values ('aaaaaaaa-0000-0000-0000-000000000001',
@@ -69,6 +79,8 @@ select lives_ok(
             'aaaaaaaa-0000-0000-0000-000000000001', 'initial')$$,
   'baseline abre mesmo com medida variavel mantida');
 
+reset role;
+-- papel: superusuario porque proportion_ratios e escrita so pela rotina de recomputo.
 -- A protecao passou para ca: o eixo nao pode usar como denominador um numero que
 -- ninguem digitou. Ele fica indisponivel e passa a valer quando for medido.
 select throws_ok(
@@ -115,6 +127,9 @@ select throws_ok(
   'status fora do vocabulario e rejeitado');
 
 -- ------------------------------------------------------- contexto de medicao ---
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
 select lives_ok(
   $$insert into checkins (user_id, taken_at, training_state, taken_at_utc_offset_minutes)
     values ('11111111-1111-1111-1111-111111111111', now(), 'before_training', -180)$$,

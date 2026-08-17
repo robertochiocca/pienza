@@ -153,7 +153,7 @@ for (const { paleta, token, hue } of matizesEncontrados) {
 // ------------------------------------------------------- literal fora do lugar --
 const RAIZES = ['packages', 'apps', 'scripts', 'supabase'];
 const EXTENSOES = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.sql']);
-const PULAR_DIR = new Set(['node_modules', 'dist', 'coverage', '.expo']);
+const PULAR_DIR = new Set(['node_modules', 'dist', 'coverage', '.expo', 'fixtures']);
 const PULAR_ARQUIVO = new Set([ARQUIVO_TOKENS, 'scripts/gate-cores.mjs']);
 const HEX = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/;
 

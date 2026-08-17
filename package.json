@@ -22,11 +22,12 @@
     "gate:mecanicas": "node scripts/gate-mecanicas-proibidas.mjs",
     "gate:dominio-puro": "node scripts/gate-dominio-puro.mjs",
     "db:test": "bash scripts/db-test.sh",
-    "check": "npm run format && npm run lint && npm run typecheck && npm test && npm run gate:mecanicas && npm run gate:nome && npm run gate:cores && npm run gate:segredos && npm run gate:dominio-puro && npm run audit:deps",
+    "check": "npm run format && npm run lint && npm run typecheck && npm test && npm run gate:mecanicas && npm run gate:nome && npm run gate:cores && npm run gate:segredos && npm run gate:papel && npm run gate:dominio-puro && npm run audit:deps",
     "gate:nome": "node scripts/gate-nome-antigo.mjs",
     "gate:cores": "node scripts/gate-cores.mjs",
     "gate:segredos": "node scripts/gate-segredos.mjs",
-    "gate:segredos:historico": "node scripts/gate-segredos.mjs --historico"
+    "gate:segredos:historico": "node scripts/gate-segredos.mjs --historico",
+    "gate:papel": "node scripts/gate-suite-papel.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

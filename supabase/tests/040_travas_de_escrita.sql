@@ -96,9 +96,10 @@ select throws_ok(
   null,
   'o cliente nao pode alegar conferencia de documento');
 
--- Funcao privilegiada com search_path mutavel deixa quem controla o caminho de
--- busca sequestrar a resolucao de nome dentro dela.
 reset role;
+-- papel: superusuario porque a leitura e de pg_proc, catalogo que `authenticated`
+-- nao alcanca. Funcao privilegiada com search_path mutavel deixa quem controla o
+-- caminho de busca sequestrar a resolucao de nome dentro dela.
 select is_empty(
   $$select p.proname
       from pg_proc p

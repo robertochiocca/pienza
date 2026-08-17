@@ -23,13 +23,14 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NEGATIVAS, POSITIVAS } from './fixtures/mecanicas.fixtures.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 /** Codigo e copy. `docs/` fica fora: la os termos precisam aparecer para serem discutidos. */
 const SCAN_ROOTS = ['packages', 'apps', 'supabase', 'scripts'];
 const SCAN_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.sql', '.json']);
-const SKIP_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', '.expo', '.git']);
+const SKIP_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', '.expo', '.git', 'fixtures']);
 const SKIP_FILES = new Set(['scripts/gate-mecanicas-proibidas.mjs']);
 
 const ESCAPE = /gate-mecanicas:\s*permitido\s+\S+/i;
@@ -218,53 +219,17 @@ function scanLine(line) {
  * verde, e a lista vira enfeite. Os casos negativos importam tanto quanto os
  * positivos — um gate que acusa demais e desligado na primeira semana.
  */
-const FIXTURES_POSITIVAS = [
-  ['continuidade', 'const streakDays = 7;'],
-  ['continuidade', 'const userStreak = contarSemanas();'],
-  ['continuidade', 'texto: "3 semanas seguidas"'],
-  ['recompensa', 'render(<Badge value={3} />)'],
-  ['recompensa', 'const experienceXP = 120;'],
-  ['recompensa', 'const award_medal = true;'],
-  ['notificacao', "import * as N from 'expo-notifications';"],
-  ['notificacao', 'await Notifications.scheduleNotificationAsync(cfg);'],
-  ['social', 'const leaderboardQuery = sql;'],
-  ['social', 'label: "seguidores"'],
-  ['ingestao', "const meta = 'meta calorica diaria';"],
-  ['ingestao', 'const alvo = 2000; // kcal'],
-  ['ingestao', 'const deficit = 500;'],
-  ['corpo-simulado', 'titulo: "antes e depois"'],
-  ['assimetria', 'const asymmetryIndex = dir - esq;'],
-  ['assimetria', 'const indiceDeAssimetria = calcular();'],
-  ['assimetria', 'const scoreAssimetria = 0.4;'],
-  ['peso-como-progresso', 'label: "seu progresso de peso"'],
-  ['inspiracao-como-alvo', 'const d = distanciaAteInspiracao(meta);'],
-];
-
-const FIXTURES_NEGATIVAS = [
-  'const expression = /abc/;',
-  'const carregamentoProgressivo = true;',
-  'select * from sequencia_de_migrations;',
-  'const rankByDate = (a, b) => a.date - b.date;',
-  'const weight = medidas.weight;',
-  '<ProgressBar value={0.4} />',
-  'const experimento = false;',
-  'const mediaDosLados = (l + r) / 2;',
-  'const dif = direito - esquerdo;',
-  'const diferencaEntreLados = d - e;',
-  'label: "D 38,2 · E 37,4 · dif 0,8"',
-];
-
 function autoTeste() {
   const falhas = [];
 
-  for (const [esperado, linha] of FIXTURES_POSITIVAS) {
+  for (const [esperado, linha] of POSITIVAS) {
     const ids = scanLine(linha).map((h) => h.rule.id);
     if (!ids.includes(esperado)) {
       falhas.push(`nao acusou [${esperado}]: ${linha}`);
     }
   }
 
-  for (const linha of FIXTURES_NEGATIVAS) {
+  for (const linha of NEGATIVAS) {
     const ids = scanLine(linha).map((h) => h.rule.id);
     if (ids.length > 0) {
       falhas.push(`acusou indevidamente [${ids.join(', ')}]: ${linha}`);
@@ -278,7 +243,7 @@ function autoTeste() {
     process.exit(1);
   }
 
-  const total = FIXTURES_POSITIVAS.length + FIXTURES_NEGATIVAS.length;
+  const total = POSITIVAS.length + NEGATIVAS.length;
   console.log(`auto-teste do gate de mecanicas: ${total} casos ok`);
 }
 

@@ -21,12 +21,13 @@ import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NEGATIVAS, POSITIVAS } from './fixtures/segredos.fixtures.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 const RAIZES_CLIENTE = ['apps', 'packages'];
 const EXTENSOES = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.env']);
-const PULAR_DIR = new Set(['node_modules', 'dist', 'coverage', '.expo']);
+const PULAR_DIR = new Set(['node_modules', 'dist', 'coverage', '.expo', 'fixtures']);
 const PULAR_ARQUIVO = new Set(['scripts/gate-segredos.mjs']);
 
 const PADROES = [
@@ -80,30 +81,14 @@ function achadosNaLinha(linha) {
   return PADROES.filter((padrao) => padrao.regex.test(linha));
 }
 
-const FIXTURES_POSITIVAS = [
-  ['supabase-service-role', 'const key = process.env.SUPABASE_SERVICE_ROLE_KEY;'],
-  ['supabase-secret', 'const k = "sb_secret_9aKq2LmNqR4tYuVw";'],
-  ['jwt', 'const t = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0";'],
-  ['aws', 'AKIAIOSFODNN7EXAMPLE'],
-  ['github', 'ghp_1234567890abcdefghijKLMNOPQRSTUVWX'],
-];
-
-const FIXTURES_NEGATIVAS = [
-  'const url = process.env.SUPABASE_URL;',
-  'const key = process.env.SUPABASE_PUBLISHABLE_KEY;',
-  'const papel = "authenticated";',
-  'grant select on checkins to authenticated;',
-  'const servico = criarServico();',
-];
-
 function autoTeste() {
   const falhas = [];
-  for (const [esperado, linha] of FIXTURES_POSITIVAS) {
+  for (const [esperado, linha] of POSITIVAS) {
     if (!achadosNaLinha(linha).some((p) => p.id === esperado)) {
       falhas.push(`nao acusou [${esperado}]: ${linha}`);
     }
   }
-  for (const linha of FIXTURES_NEGATIVAS) {
+  for (const linha of NEGATIVAS) {
     const ids = achadosNaLinha(linha).map((p) => p.id);
     if (ids.length > 0) falhas.push(`acusou indevidamente [${ids.join(', ')}]: ${linha}`);
   }
@@ -113,9 +98,7 @@ function autoTeste() {
     console.error('');
     process.exit(1);
   }
-  console.log(
-    `auto-teste do gate de segredos: ${FIXTURES_POSITIVAS.length + FIXTURES_NEGATIVAS.length} casos ok`,
-  );
+  console.log(`auto-teste do gate de segredos: ${POSITIVAS.length + NEGATIVAS.length} casos ok`);
 }
 
 function varrerHistorico() {
@@ -144,7 +127,11 @@ function varrerHistorico() {
       }
       if (!linha.startsWith('+')) continue;
       // O proprio gate e as suas fixtures vivem no historico a partir deste commit.
-      if (linha.includes('FIXTURES_') || arquivoCorrente.includes('gate-segredos')) continue;
+      if (
+        arquivoCorrente.startsWith('scripts/fixtures/') ||
+        arquivoCorrente.includes('gate-segredos')
+      )
+        continue;
       const noCliente = RAIZES_CLIENTE.some((raiz) => arquivoCorrente.startsWith(`${raiz}/`));
       for (const padrao of PADROES) {
         if (padrao.somenteCliente === true && !noCliente) continue;
