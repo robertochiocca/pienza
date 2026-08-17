@@ -136,8 +136,17 @@ const RULES = [
   },
   {
     id: 'assimetria',
-    item: 'Metrica de assimetria entre lados (ADR 0005)',
-    patterns: [/\bassimetria/i, /\basymmetr/i, /\bdesequilibrio\s+entre\s+lados\b/i],
+    item: 'Indice ou score de assimetria entre lados (ADR 0005)',
+    // Escopo estreitado: exibir a diferenca em cm e permitido e desejado — corpo
+    // assimetrico e fato, e saber disso e interesse legitimo de quem mede. O que a
+    // ADR recusa e transformar a diferenca em indice, score ou nota, porque ai o
+    // numero deixa de ser a subtracao e vira julgamento com limiar que eu teria de
+    // inventar. Por isso proximidade, e nao a palavra sozinha.
+    proximity: {
+      left: /assimetr|asymmetr/i,
+      right: /[ií]ndice|index|score|ratio|pontua|nota\b/i,
+      window: 32,
+    },
   },
   {
     id: 'peso-como-progresso',
@@ -224,8 +233,9 @@ const FIXTURES_POSITIVAS = [
   ['ingestao', 'const alvo = 2000; // kcal'],
   ['ingestao', 'const deficit = 500;'],
   ['corpo-simulado', 'titulo: "antes e depois"'],
-  ['assimetria', 'const assimetriaBraco = dir - esq;'],
-  ['assimetria', 'export function computeAsymmetry(l, r) {}'],
+  ['assimetria', 'const asymmetryIndex = dir - esq;'],
+  ['assimetria', 'const indiceDeAssimetria = calcular();'],
+  ['assimetria', 'const scoreAssimetria = 0.4;'],
   ['peso-como-progresso', 'label: "seu progresso de peso"'],
   ['inspiracao-como-alvo', 'const d = distanciaAteInspiracao(meta);'],
 ];
@@ -239,6 +249,9 @@ const FIXTURES_NEGATIVAS = [
   '<ProgressBar value={0.4} />',
   'const experimento = false;',
   'const mediaDosLados = (l + r) / 2;',
+  'const dif = direito - esquerdo;',
+  'const diferencaEntreLados = d - e;',
+  'label: "D 38,2 · E 37,4 · dif 0,8"',
 ];
 
 function autoTeste() {

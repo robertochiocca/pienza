@@ -4,7 +4,7 @@ import {
   buildSessionPlan,
   resolveEntries,
   stepId,
-  variablesBlockingBaseline,
+  variablesKeptAtBaseline,
   type Answer,
   type MeasurementSpec,
   type PreviousValue,
@@ -144,9 +144,9 @@ describe('buildSessionPlan', () => {
     expect(plano.steps.find((s) => s.id === 'waist:na')?.prefilled).toBe(true);
   });
 
-  // A trava do baseline vive no banco. Aqui ela vira comportamento de tela, para o
-  // erro aparecer no passo e nao depois da sessao inteira preenchida.
-  it('nao preenche variavel quando o check-in vai abrir baseline', () => {
+  // Baseline parcial: manter nao bloqueia, adia. Quem paga e o eixo, que fica
+  // indisponivel ate a medida ser digitada uma vez.
+  it('sinaliza que manter em baseline deixa o eixo pendente, sem tirar o preenchimento', () => {
     const plano = buildSessionPlan({
       vocabulary: VOCABULARIO,
       previous: [
@@ -159,10 +159,22 @@ describe('buildSessionPlan', () => {
     });
 
     const cintura = plano.steps.find((s) => s.id === 'waist:na');
-    expect(cintura?.prefilled).toBe(false);
-    expect(cintura?.previousValue).toBe(82);
+    expect(cintura?.prefilled).toBe(true);
+    expect(cintura?.keptLeavesAxisPending).toBe(true);
     // Estrutural segue carregada: la mantido e o comportamento correto.
     expect(plano.carried.map((c) => c.key)).toContain('wrist');
+  });
+
+  it('fora de baseline nenhum passo deixa eixo pendente', () => {
+    const plano = buildSessionPlan({
+      vocabulary: VOCABULARIO,
+      previous: [anterior({ key: 'waist', value: 82 })],
+      now: AGORA,
+      structuralRemeasureAfterDays: 180,
+      isBaseline: false,
+    });
+
+    expect(plano.steps.every((s) => !s.keptLeavesAxisPending)).toBe(true);
   });
 });
 
@@ -239,9 +251,9 @@ describe('resolveEntries', () => {
   });
 });
 
-describe('variablesBlockingBaseline', () => {
+describe('variablesKeptAtBaseline', () => {
   it('lista so as variaveis mantidas, sem repetir', () => {
-    const bloqueando = variablesBlockingBaseline(
+    const pendentes = variablesKeptAtBaseline(
       [
         { key: 'waist', side: 'na', value: 82, provenance: 'kept' },
         { key: 'arm_flexed', side: 'l', value: 38, provenance: 'kept' },
@@ -252,12 +264,12 @@ describe('variablesBlockingBaseline', () => {
       VOCABULARIO,
     );
 
-    expect(bloqueando).toEqual(['arm_flexed', 'waist']);
+    expect(pendentes).toEqual(['arm_flexed', 'waist']);
   });
 
   it('nao acusa nada quando tudo que e variavel foi digitado', () => {
     expect(
-      variablesBlockingBaseline(
+      variablesKeptAtBaseline(
         [{ key: 'waist', side: 'na', value: 82, provenance: 'typed' }],
         VOCABULARIO,
       ),

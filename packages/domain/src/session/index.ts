@@ -1,4 +1,4 @@
-export { buildSessionPlan, resolveEntries, stepId, variablesBlockingBaseline } from './plan';
+export { buildSessionPlan, resolveEntries, stepId, variablesKeptAtBaseline } from './plan';
 export type { SessionPlanInput } from './plan';
 export type {
   Answer,

@@ -104,6 +104,19 @@ o que inverte quase todo o escopo.
   check-ins; lado fixo é arbitrário. **E nenhuma métrica de assimetria é computada** — fita
   métrica na própria mão tem erro que frequentemente supera a assimetria real, e separar um do
   outro exigiria um limiar que eu teria que inventar. Ver ADR 0005.
+- **Paletas Bandeira (light) e Noturno (dark), com um único matiz cromático.** Vermelho mais
+  neutros. Não existe segunda cor com que montar semáforo, e nenhum verde entra. Vermelho pode
+  marcar qual série é a atual — identidade temporal — mas nunca varia com sinal, magnitude ou
+  direção; direção é preenchimento, não matiz. Ver ADR 0010.
+- **Diferença entre lados é exibida como número cru**, sem cor, rótulo ou direção. O hexágono usa
+  a média. Proibido é índice ou score de assimetria. Ver ADR 0005.
+- **Baseline abre parcial.** Eixo cujo denominador não foi digitado fica indisponível com motivo
+  e passa a valer quando for medido. Ver ADR 0011.
+- **Frequência de medição é livre**, sem limite. A janela padrão de comparação do hexágono não é
+  o check-in anterior, e sim um intervalo em que a mudança seja plausível — o padrão não
+  apresenta ruído como sinal.
+- **Verificação de autoria é sobre identidade de commit, não sobre trailer**, e `git fetch origin`
+  é obrigatório entre a purga e o push. Ver ADR 0008.
 - **Supabase em `sa-east-1`.** DPA antes de qualquer dado real.
 - **Nada de prescrição de dieta ou treino** enquanto não houver profissional CREF/CRN no fluxo,
   com a constraint de banco que rejeita `status = 'delivered'` sem assinatura.

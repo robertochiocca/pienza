@@ -46,6 +46,11 @@ export interface SessionStep {
   readonly previousValue: number | null;
   /** Se a tela abre com o valor anterior ja preenchido. */
   readonly prefilled: boolean;
+  /**
+   * Em check-in de baseline, manter este valor deixa o eixo correspondente pendente
+   * ate ele ser digitado uma vez. Nao bloqueia a sessao.
+   */
+  readonly keptLeavesAxisPending: boolean;
 }
 
 /** Valor que atravessa o check-in sem virar passo, porque remedi-lo nao informa nada. */

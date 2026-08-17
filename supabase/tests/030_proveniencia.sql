@@ -1,7 +1,8 @@
--- Proveniencia de medida. Ver docs/decisoes/0007-proveniencia-de-medida.md.
+-- Proveniencia de medida e baseline parcial.
+-- Ver docs/decisoes/0007-proveniencia-de-medida.md.
 --
--- A pergunta deste arquivo: e possivel gravar um valor sem dizer como ele entrou, e
--- e possivel abrir baseline sobre valor que ninguem mediu?
+-- A pergunta: e possivel gravar um valor sem dizer como ele entrou, e e possivel um
+-- eixo usar como denominador um numero que ninguem aferiu?
 
 begin;
 select plan(11);
@@ -11,8 +12,7 @@ insert into auth.users (id, email) values
 
 insert into checkins (id, user_id, taken_at) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', now()),
-  ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', now()),
-  ('aaaaaaaa-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', now());
+  ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', now());
 
 -- ------------------------------------------------------------- classificacao ---
 select is(
@@ -53,75 +53,72 @@ select throws_ok(
   null,
   'proveniencia so aceita typed ou kept');
 
--- ------------------------------------------------------------------- baseline --
--- Um baseline contaminado desloca os seis eixos para sempre. E o unico ponto onde a
--- contaminacao e irreversivel, entao a regra e trava de banco.
+-- ---------------------------------------------------------- baseline parcial ---
+-- A protecao nao esta mais em recusar o baseline. Se redefinir baseline for caro, a
+-- pessoa nao redefine, e comparar contra baseline velho e pior que o atrito que a
+-- recusa evitava. O baseline abre com o que houver.
 insert into measurement_values (checkin_id, user_id, key, side, value, provenance) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
-   'waist', 'na', 82, 'kept');
-
-select throws_ok(
-  $$insert into baselines (user_id, checkin_id, reason)
-    values ('11111111-1111-1111-1111-111111111111',
-            'aaaaaaaa-0000-0000-0000-000000000001', 'initial')$$,
-  '23514',
-  null,
-  'baseline sobre medida variavel mantida e rejeitado');
-
--- A mensagem nomeia o que falta: erro que nao diz o que fazer vira suporte.
-select throws_like(
-  $$insert into baselines (user_id, checkin_id, reason)
-    values ('11111111-1111-1111-1111-111111111111',
-            'aaaaaaaa-0000-0000-0000-000000000001', 'initial')$$,
-  '%waist%',
-  'o erro nomeia a medida que precisa ser digitada');
-
--- Medida estrutural mantida nao impede baseline: ali `kept` e o comportamento certo.
-insert into measurement_values (checkin_id, user_id, key, side, value, provenance) values
-  ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
-   'waist', 'na', 82, 'typed'),
-  ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
-   'wrist', 'l', 17, 'kept'),
-  ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
-   'height', 'na', 178, 'kept');
+   'waist', 'na', 82, 'kept'),
+  ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
+   'chest', 'na', 100, 'typed');
 
 select lives_ok(
   $$insert into baselines (user_id, checkin_id, reason)
     values ('11111111-1111-1111-1111-111111111111',
-            'aaaaaaaa-0000-0000-0000-000000000002', 'initial')$$,
-  'baseline com variaveis digitadas e estruturais mantidas e aceito');
+            'aaaaaaaa-0000-0000-0000-000000000001', 'initial')$$,
+  'baseline abre mesmo com medida variavel mantida');
 
--- ------------------------------------------------------- razoes de proporcao ---
+-- A protecao passou para ca: o eixo nao pode usar como denominador um numero que
+-- ninguem digitou. Ele fica indisponivel e passa a valer quando for medido.
 select throws_ok(
   $$insert into proportion_ratios
       (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id,
-       status, current_value, reference_value, ratio)
-    values ('aaaaaaaa-0000-0000-0000-000000000003',
+       status, current_value, reference_value, ratio,
+       current_provenance, reference_provenance)
+    values ('aaaaaaaa-0000-0000-0000-000000000002',
             '11111111-1111-1111-1111-111111111111', 'core_waist', 'baseline',
-            'aaaaaaaa-0000-0000-0000-000000000002', 'ok', 80, 82, 0.9756)$$,
+            'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 80, 82, 0.9756,
+            'typed', 'kept')$$,
   '23514',
   null,
-  'eixo ok exige a proveniencia das duas pontas da razao');
+  'eixo valido nao pode ter denominador mantido');
 
 select lives_ok(
   $$insert into proportion_ratios
       (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id,
        status, current_value, reference_value, ratio,
        current_provenance, reference_provenance)
-    values ('aaaaaaaa-0000-0000-0000-000000000003',
-            '11111111-1111-1111-1111-111111111111', 'core_waist', 'baseline',
-            'aaaaaaaa-0000-0000-0000-000000000002', 'ok', 80, 82, 0.9756,
+    values ('aaaaaaaa-0000-0000-0000-000000000002',
+            '11111111-1111-1111-1111-111111111111', 'chest', 'baseline',
+            'aaaaaaaa-0000-0000-0000-000000000001', 'ok', 101, 100, 1.01,
             'kept', 'typed')$$,
-  'eixo com numerador mantido e registrado como tal, nao recusado');
+  'numerador mantido e aceito: significa que a pessoa nao remediu, e a razao segue verdadeira');
 
--- Eixo indisponivel nao exige proveniencia: nao ha razao para carimbar.
+-- O eixo que espera medicao tem status proprio, com motivo, e nao vale zero.
 select lives_ok(
   $$insert into proportion_ratios
       (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status)
-    values ('aaaaaaaa-0000-0000-0000-000000000003',
-            '11111111-1111-1111-1111-111111111111', 'chest', 'baseline',
-            'aaaaaaaa-0000-0000-0000-000000000002', 'missing_input')$$,
-  'eixo indisponivel nao exige proveniencia');
+    values ('aaaaaaaa-0000-0000-0000-000000000002',
+            '11111111-1111-1111-1111-111111111111', 'core_waist', 'baseline',
+            'aaaaaaaa-0000-0000-0000-000000000001', 'baseline_not_typed')$$,
+  'eixo com baseline nao digitado fica indisponivel, com motivo');
+
+select throws_ok(
+  $$insert into proportion_ratios
+      (checkin_id, user_id, axis_key, denominator_kind, baseline_checkin_id, status)
+    values ('aaaaaaaa-0000-0000-0000-000000000002',
+            '11111111-1111-1111-1111-111111111111', 'arms', 'baseline',
+            'aaaaaaaa-0000-0000-0000-000000000001', 'sei_la')$$,
+  '23514',
+  null,
+  'status fora do vocabulario e rejeitado');
+
+-- ------------------------------------------------------- contexto de medicao ---
+select lives_ok(
+  $$insert into checkins (user_id, taken_at, training_state, taken_at_utc_offset_minutes)
+    values ('11111111-1111-1111-1111-111111111111', now(), 'before_training', -180)$$,
+  'contexto de medicao e opcional e nao bloqueia o check-in');
 
 select * from finish();
 rollback;

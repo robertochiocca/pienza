@@ -49,11 +49,36 @@ jobs:
       - name: Gate de mecanicas proibidas
         run: npm run gate:mecanicas
 
+      - name: Gate de nome antigo
+        run: npm run gate:nome
+
+      - name: Gate de cores
+        run: npm run gate:cores
+
+      - name: Gate de segredos
+        run: npm run gate:segredos
+
       - name: Gate de dominio puro
         run: npm run gate:dominio-puro
 
       - name: Auditoria de dependencia
         run: npm run audit:deps
+
+  segredos-no-historico:
+    name: varredura de segredo no historico
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth 0: a varredura le todos os commits, e o clone raso do padrao
+      # traria um so — o gate passaria sem ter olhado quase nada.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - run: npm run gate:segredos:historico
 
   banco:
     name: migrations e RLS

@@ -74,6 +74,21 @@ Estes não são descuidos; são consequências de decisões escritas:
   decidido.
 - Engenharia social, ataque físico, e qualquer teste que envolva conta que não seja sua.
 
+## Pendente, com dono, e não como se estivesse feito
+
+Estes itens dependem do aplicativo existir. Enquanto ele não existe, eles não estão fechados e
+eu não escrevo que estão:
+
+- **Upload de foto:** limite de tamanho, allowlist de tipo verificada pelo conteúdo do arquivo e
+  não pelo `Content-Type` declarado, e nome gerado pelo servidor. O `CHECK` que amarra
+  `storage_path` ao dono já existe; falta validar o que entra.
+- **Resposta enxuta:** `select()` com colunas explícitas em toda consulta. PostgREST devolve a
+  linha inteira por padrão, e coluna explícita limita o estrago de uma policy mal escrita.
+- **Sessão em armazenamento seguro do sistema** (Keychain/Keystore), nunca em armazenamento
+  comum de aplicativo.
+- **Limite de taxa e proteção contra bot no Auth**, a confirmar na configuração do provedor.
+  CAPTCHA antes do lançamento.
+
 ## Compromissos meus
 
 - Não faço `git push` de segredo. `.env` está no `.gitignore` desde o primeiro commit e o
@@ -81,4 +96,7 @@ Estes não são descuidos; são consequências de decisões escritas:
 - Versão de ferramenta que decide se o build passa é pinada, e Actions são referenciadas por SHA
   completo — tag pode ser movida.
 - Auditoria de dependência reprova o build em vez de avisar.
+- Varredura de segredo reprova o build, e o histórico inteiro já foi varrido.
+- Chave de serviço nunca no cliente: a chave anônima é pública por desenho e só é segura porque a
+  RLS existe; a de serviço ignora RLS e vive apenas em função de servidor. Há gate para isso.
 - Quando houver produção, dado de titular excluído não é restaurado de backup.

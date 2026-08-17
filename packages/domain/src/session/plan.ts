@@ -33,8 +33,9 @@ export interface SessionPlanInput {
    */
   readonly structuralRemeasureAfterDays: number;
   /**
-   * Check-in que vai abrir baseline. Um baseline contaminado desloca os seis eixos
-   * para sempre, e o banco rejeita abri-lo sobre medida variavel mantida.
+   * Check-in que vai abrir baseline. O baseline abre com o que houver; o que fica
+   * pendente e o eixo cuja medida nunca foi digitada nele, porque nenhum eixo usa
+   * denominador que ninguem aferiu.
    */
   readonly isBaseline: boolean;
 }
@@ -73,10 +74,11 @@ export function buildSessionPlan(input: SessionPlanInput): SessionPlan {
         }
       }
 
-      // Em check-in de baseline, medida variavel nunca abre preenchida. Se abrisse, a
-      // pessoa avancaria confirmando, o valor sairia como mantido, e o banco recusaria
-      // o baseline no fim da sessao — erro tardio sobre trabalho ja feito.
-      const prefilled = previo !== undefined && !(input.isBaseline && spec.kind === 'variable');
+      // O pre-preenchimento vale tambem em check-in de baseline. A versao anterior o
+      // suprimia ali para forcar digitacao, o que transformava redefinir baseline na
+      // sessao mais longa do app — e sessao cara e sessao que ninguem faz, o que
+      // deixa a pessoa comparando contra um baseline velho.
+      const prefilled = previo !== undefined;
 
       steps.push({
         id,
@@ -87,6 +89,9 @@ export function buildSessionPlan(input: SessionPlanInput): SessionPlan {
         kind: spec.kind,
         previousValue: previo?.value ?? null,
         prefilled,
+        // Manter aqui nao impede nada: adia. O eixo que depende desta medida fica
+        // indisponivel, com motivo, ate ela ser digitada uma vez neste baseline.
+        keptLeavesAxisPending: input.isBaseline && spec.kind === 'variable',
       });
     }
   }
@@ -153,12 +158,13 @@ export function resolveEntries(
 }
 
 /**
- * Medidas variaveis que sairiam mantidas, e por isso impediriam abrir baseline.
+ * Medidas variaveis que sairiam mantidas num check-in de baseline.
  *
- * Existe para a tela poder avisar antes, no proprio passo, em vez de deixar o banco
- * recusar o baseline depois da sessao inteira preenchida.
+ * Nao bloqueiam: os eixos que dependem delas nascem `baseline_not_typed` e passam a
+ * valer quando a medida for digitada. Existe para a tela poder dizer isso no passo,
+ * enquanto ainda da para medir, em vez de a pessoa descobrir depois.
  */
-export function variablesBlockingBaseline(
+export function variablesKeptAtBaseline(
   entries: readonly ResolvedEntry[],
   vocabulary: readonly MeasurementSpec[],
 ): readonly string[] {

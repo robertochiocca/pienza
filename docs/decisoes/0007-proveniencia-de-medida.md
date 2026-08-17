@@ -39,7 +39,9 @@ Os identificadores ficam em inglês porque todo o resto do schema é (`status`, 
 
 ### Consequências mecânicas, nenhuma delas julgando quem usa
 
-**Baseline só se estabelece a partir de valor digitado.** É o único lugar onde a contaminação é
+**Baseline só se estabelece a partir de valor digitado.** _(Revisto na ADR 0011: o baseline
+passou a abrir parcial, e a proteção migrou do gatilho para a restrição de `proportion_ratios`.
+O parágrafo abaixo descreve a regra original.)_ É o único lugar onde a contaminação é
 irreversível — um baseline ruim desloca todos os eixos para sempre, e não há como saber depois
 que ele era ruim. A regra é trava de banco, não convenção: um gatilho rejeita abrir baseline num
 check-in que tenha medida variável com `provenance = 'kept'`. Se a pessoa redefinir baseline,
