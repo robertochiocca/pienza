@@ -30,6 +30,15 @@ export PGUSER="${PGUSER:-postgres}"
 
 falhas=0
 
+# Servidor fora do ar e ambiente quebrado, nao teste vermelho. Sem esta checagem o
+# runner reporta as duas coisas do mesmo jeito, e eu ja perdi tempo procurando bug
+# de codigo quando o cluster local tinha simplesmente parado.
+if ! pg_isready -q; then
+  echo "Postgres nao esta acessivel em $PGHOST:$PGPORT." >&2
+  echo "Isto e ambiente, nao teste. Suba o servidor e rode de novo." >&2
+  exit 3
+fi
+
 case "$MODO" in
   shim)
     DB="pienza_test_$$"
