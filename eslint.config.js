@@ -42,6 +42,19 @@ export default tseslint.config(
     },
   },
   {
+    // O harness web roda no navegador de verdade: monta em `document`, mede janela.
+    // As telas em `apps/mobile/src` nao veem nada disto — e por isso que os globais
+    // entram so nesta pasta, e nao no pacote inteiro.
+    files: ['apps/mobile/web/**/*.tsx', 'apps/mobile/web/**/*.ts'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+      },
+    },
+  },
+  {
     // Arquivos JavaScript soltos — este proprio config e os scripts de gate — nao
     // pertencem a nenhum tsconfig, e o typescript-eslint com `projectService`
     // reprova com "was not found by the project service" em vez de simplesmente

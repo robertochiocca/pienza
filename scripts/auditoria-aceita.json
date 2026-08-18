@@ -1,0 +1,34 @@
+{
+  "comentario": [
+    "Advisories aceitos conscientemente, um por entrada.",
+    "",
+    "Esta lista nao e um jeito de baixar o limiar do npm audit. O limiar continua em",
+    "'low': qualquer advisory que nao esteja aqui reprova o build. O que a lista faz e",
+    "obrigar a excecao a ser nominal, datada e explicada, em vez de virar um numero",
+    "menor na configuracao que nao diz nada sobre o que foi aceito nem por quem.",
+    "",
+    "Uma entrada que nao casa mais com nenhum advisory tambem reprova o build. Isso e",
+    "de proposito: excecao que sobrevive ao motivo e o modo como um repositorio",
+    "acumula permissao sem que ninguem tenha decidido nada."
+  ],
+  "aceitas": [
+    {
+      "advisory": "GHSA-w3rx-r6r6-pgpr",
+      "pacote": "image-size",
+      "severidade_maxima": "high",
+      "chega_por": "react-native > @react-native/community-cli-plugin > metro > image-size",
+      "aceita_em": "2026-08-18",
+      "por_que_aceita": "Negacao de servico por laco infinito no parser de ICNS. Quem chama esse parser e o Metro, ao empacotar assets de imagem. Este repositorio nao executa Metro: o harness web e empacotado por esbuild e o CI nao roda nenhum bundler de React Native. O react-native esta instalado como devDependency exclusivamente pelos tipos de View, Text, TextInput, Pressable, ScrollView e StyleSheet, para que as telas sejam checadas contra a API do aparelho e nao contra a do react-native-web.",
+      "quando_reabrir": "Quando o Expo entrar e o Metro passar a rodar de verdade, sobre assets que a pessoa fornece. Ai o parser passa a ser executado e a analise muda de dono: deixa de ser 'nao rodamos isso' e vira 'de onde vem a imagem'."
+    },
+    {
+      "advisory": "GHSA-5p2g-fcmc-qvqq",
+      "pacote": "image-size",
+      "severidade_maxima": "high",
+      "chega_por": "react-native > @react-native/community-cli-plugin > metro > image-size",
+      "aceita_em": "2026-08-18",
+      "por_que_aceita": "Mesmo pacote e mesma classe do anterior, nos parsers de JXL e HEIF. Nao ha versao corrigida publicada de image-size: o advisory cobre todas as versoes, entao nao existe atualizacao que resolva. O que o npm oferece como correcao e voltar o react-native para 0.72.17, uma major para tras, que troca um laco infinito num parser que nao executo por uma versao de framework tres anos mais velha.",
+      "quando_reabrir": "Igual ao anterior, e tambem no dia em que image-size publicar versao corrigida: nesse dia esta entrada para de casar e o gate reprova ate ela ser removida."
+    }
+  ]
+}

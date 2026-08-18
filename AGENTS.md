@@ -50,6 +50,21 @@ decide o build não muda sem alguém decidir.
 dependência com CVE reprova. Tipo quebrado reprova. Formatação fora do padrão reprova. Aviso que
 não reprova é aviso que ninguém lê.
 
+Quando um advisory não tem correção publicada, a saída **não** é subir o limiar da auditoria —
+subir o limiar por causa de um advisory desliga o gate para todos os outros, inclusive os que
+ainda não existem. A saída é nominal: o advisory entra em `scripts/auditoria-aceita.json` com
+pacote, caminho, data e motivo escrito, e todo o resto continua reprovando. Uma entrada que não
+casa mais com nenhum advisory também reprova, porque exceção que sobrevive ao motivo é como um
+repositório acumula permissão sem ninguém ter decidido nada. `critical` não entra por lista.
+
+**1.3.1 — `main` é protegida no GitHub, e o gate roda antes do merge e não depois.** Push direto
+bloqueado, inclusive para administrador; PR obrigatória; checks obrigatórios verdes; branch
+atualizada com `main` antes do merge. Rodar o gate localmente e depois empurrar é uma promessa
+sobre como alguém digita — eu já empurrei em cima de um vermelho por ter encadeado verificação e
+push com `;` em vez de `&&`. Ver `docs/decisoes/0012-protecao-de-branch.md`. Esta é a única regra
+deste arquivo cuja aplicação mora fora do repositório: enquanto a chave não estiver ligada no
+console, o registro honesto é que este gate não existe.
+
 **1.4 — `permissions` declarado explicitamente em todo workflow.** Começa em `contents: read` e
 só sobe onde precisar, com justificativa.
 
@@ -182,6 +197,9 @@ Cada ciclo:
 5. Commit apenas com o gate verde
 6. Próximo item
 
+Verificação e push nunca no mesmo comando, e nunca encadeados com `;`. Isso continua valendo e
+continua sendo insuficiente sozinho — é por isso que existe a 1.3.1.
+
 **Gate automático — você mesmo verifica e não me consulta:**
 
 - typecheck sem erro, com `noUncheckedIndexedAccess` ligado
@@ -189,7 +207,7 @@ Cada ciclo:
 - testes unitários do domínio, incluindo propriedade com fast-check
 - suíte pgTAP de RLS
 - cobertura do `packages/domain` acima do piso
-- auditoria de dependência sem CVE conhecida
+- auditoria de dependência: nenhum advisory fora de `scripts/auditoria-aceita.json`
 - regra de mecânicas proibidas da seção 3
 - nenhuma dependência nova em `packages/domain` — o domínio é puro
 

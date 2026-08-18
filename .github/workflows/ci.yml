@@ -64,6 +64,9 @@ jobs:
       - name: Gate de dominio puro
         run: npm run gate:dominio-puro
 
+      # Nao e `npm audit --audit-level=<n>`: o gate le o relatorio e cobra que cada
+      # advisory esteja aceito por escrito, com pacote, data e motivo. Ver o cabecalho
+      # de scripts/gate-auditoria.mjs.
       - name: Auditoria de dependencia
         run: npm run audit:deps
 

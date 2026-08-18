@@ -18,7 +18,7 @@
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "npm run test --workspaces --if-present",
-    "audit:deps": "npm audit --audit-level=low",
+    "audit:deps": "node scripts/gate-auditoria.mjs",
     "gate:mecanicas": "node scripts/gate-mecanicas-proibidas.mjs",
     "gate:dominio-puro": "node scripts/gate-dominio-puro.mjs",
     "db:test": "bash scripts/db-test.sh",
