@@ -22,8 +22,9 @@ import { HexagonoWeb } from './HexagonoWeb';
  * teste e nao proposta: nada foi decidido sobre ela.
  */
 
+// Copia de product_settings, como em main.tsx: o harness nao tem banco.
 const LIMIAR = 0.01;
-const FAIXA = { min: 0.85, max: 1.15 };
+const ESCALA = { razaoMinima: 0.85, razaoMaxima: 1.15, raioMinimo: 0.25 };
 
 interface Conjunto {
   readonly nome: string;
@@ -99,7 +100,7 @@ function Campo() {
         palette={palette}
         tamanho={largura}
         limiarEstavel={LIMIAR}
-        faixa={FAIXA}
+        escalaRadial={ESCALA}
         rotuloDeIntervalo={conjunto.intervalo}
         mostrarDirecao={conjunto.mostrarDirecao ?? true}
       />

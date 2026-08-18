@@ -8,7 +8,7 @@ import {
   type EstadoDoEixo,
 } from '../src';
 
-const FAIXA = { min: 0.85, max: 1.15 };
+const ESCALA = { razaoMinima: 0.85, razaoMaxima: 1.15, raioMinimo: 0.25 };
 const LIMIAR = 0.01;
 
 const CHAVES = ['ombro', 'peito', 'braco', 'cintura', 'coxa', 'panturrilha'] as const;
@@ -21,21 +21,60 @@ function seis(ratios: readonly number[]): EixoDeEntrada[] {
   return CHAVES.map((k, i) => eixo(k, { status: 'ok', ratio: ratios[i] ?? 1 }));
 }
 
+/** Elasticidade do raio em relacao a razao, na razao 1. Derivada, entao passo pequeno. */
+function elasticidade(escala: typeof ESCALA): number {
+  const h = 1e-7;
+  const a = razaoParaRaio(1, escala);
+  const b = razaoParaRaio(1 + h, escala);
+  return (b - a) / a / h;
+}
+
 describe('razaoParaRaio', () => {
   it('a razao 1 cai no mesmo raio para qualquer eixo, que e o anel do baseline', () => {
-    expect(razaoParaRaio(1, FAIXA)).toBeCloseTo(0.25 + 0.5 * 0.75, 10);
+    expect(razaoParaRaio(1, ESCALA)).toBeCloseTo(0.25 + 0.5 * 0.75, 10);
   });
 
   it('a borda de dentro nao e o centro', () => {
     // Um vertice no minimo da faixa desenhado no centro faria o poligono colapsar
     // em cima de si mesmo, e dois eixos no minimo desenhariam a mesma figura que um.
-    expect(razaoParaRaio(FAIXA.min, FAIXA)).toBe(0.25);
-    expect(razaoParaRaio(FAIXA.max, FAIXA)).toBe(1);
+    expect(razaoParaRaio(ESCALA.razaoMinima, ESCALA)).toBe(0.25);
+    expect(razaoParaRaio(ESCALA.razaoMaxima, ESCALA)).toBe(1);
+  });
+
+  // A amplificacao e o achado principal do ciclo 7 e agora e fato verificado, e nao
+  // nota em documento. Ela depende so dos tres numeros da escala, entao mexer neles
+  // sem querer mexer nela quebra aqui.
+  it('a escala em vigor amplifica exatamente 4 vezes no raio, e 8 na area', () => {
+    // Elasticidade e derivada, entao o passo tem que ser pequeno: num passo finito de
+    // 2% o termo de segunda ordem levanta a area para 8,3, que e o numero que aparece
+    // na ADR ao lado do de 8.
+    expect(elasticidade(ESCALA)).toBeCloseTo(4, 5);
+    expect(2 * elasticidade(ESCALA)).toBeCloseTo(8, 5);
+
+    const r0 = razaoParaRaio(1, ESCALA);
+    const r1 = razaoParaRaio(1.02, ESCALA);
+    expect((r1 - r0) / r0 / 0.02).toBeCloseTo(4, 6);
+    expect((Math.pow(r1 / r0, 2) - 1) / 0.02).toBeCloseTo(8.32, 2);
+  });
+
+  // Os dois numeros puxam em sentidos opostos, e eu tinha escrito o contrario sobre o
+  // raio minimo antes de medir. Ele amortece: com raio de partida maior, a mesma
+  // variacao absoluta vira variacao relativa menor.
+  it('faixa mais estreita amplifica mais, e raio minimo maior amplifica menos', () => {
+    expect(elasticidade({ ...ESCALA, razaoMinima: 0.9, razaoMaxima: 1.1 })).toBeGreaterThan(
+      elasticidade(ESCALA),
+    );
+    expect(elasticidade({ ...ESCALA, razaoMinima: 0.7, razaoMaxima: 1.3 })).toBeLessThan(
+      elasticidade(ESCALA),
+    );
+    expect(elasticidade({ ...ESCALA, raioMinimo: 0.5 })).toBeLessThan(elasticidade(ESCALA));
+    // Sem raio minimo nenhum, o desenho exagerava 6,67 vezes em vez de 4.
+    expect(elasticidade({ ...ESCALA, raioMinimo: 0 })).toBeCloseTo(20 / 3, 5);
   });
 
   it('razao fora da faixa gruda na borda em vez de sair do grafico', () => {
-    expect(razaoParaRaio(0.2, FAIXA)).toBe(0.25);
-    expect(razaoParaRaio(3, FAIXA)).toBe(1);
+    expect(razaoParaRaio(0.2, ESCALA)).toBe(0.25);
+    expect(razaoParaRaio(3, ESCALA)).toBe(1);
   });
 });
 
@@ -44,7 +83,7 @@ describe('plotarHexagono', () => {
     const p = plotarHexagono({
       eixos: seis([1, 1, 1, 1, 1, 1]),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     expect(p.vertices).toHaveLength(6);
     expect(p.vertices[0]?.anguloRad).toBeCloseTo(-Math.PI / 2, 10);
@@ -60,7 +99,7 @@ describe('plotarHexagono', () => {
     const p = plotarHexagono({
       eixos: seis([1.08, 0.92, 1, 1.005, 0.995, 1.2]),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     expect(p.vertices.map((v) => v.direcao)).toEqual([
       'fora',
@@ -74,8 +113,8 @@ describe('plotarHexagono', () => {
 
   it('o limiar e do chamador: o mesmo dado muda de direcao quando o limiar muda', () => {
     const eixos = seis([1.02, 1, 1, 1, 1, 1]);
-    const apertado = plotarHexagono({ eixos, limiarEstavel: 0.01, faixa: FAIXA });
-    const frouxo = plotarHexagono({ eixos, limiarEstavel: 0.05, faixa: FAIXA });
+    const apertado = plotarHexagono({ eixos, limiarEstavel: 0.01, escalaRadial: ESCALA });
+    const frouxo = plotarHexagono({ eixos, limiarEstavel: 0.05, escalaRadial: ESCALA });
     expect(apertado.vertices[0]?.direcao).toBe('fora');
     expect(frouxo.vertices[0]?.direcao).toBe('estavel');
   });
@@ -91,7 +130,7 @@ describe('plotarHexagono', () => {
         eixo('panturrilha', { status: 'ok', ratio: 1 }),
       ],
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
 
     expect(p.vertices.map((v) => v.key)).toEqual(['ombro', 'coxa', 'panturrilha']);
@@ -110,14 +149,14 @@ describe('plotarHexagono', () => {
     const completo = plotarHexagono({
       eixos: seis([1, 1, 1, 1, 1, 1]),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     const comBuraco = plotarHexagono({
       eixos: seis([1, 1, 1, 1, 1, 1]).map((e, i) =>
         i === 2 ? eixo(e.key, { status: 'indisponivel', motivo: 'sem_medida' }) : e,
       ),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
 
     const angulos = new Map(completo.vertices.map((v) => [v.key, v.anguloRad]));
@@ -131,22 +170,22 @@ describe('plotarHexagono', () => {
     const a = plotarHexagono({
       eixos: seis([1.1, 1.1, 1.1, 1.1, 1.1, 1.1]),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     const b = plotarHexagono({
       eixos: seis([0.9, 0.9, 0.9, 0.9, 0.9, 0.9]),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     expect(a.raioDoBaseline).toBe(b.raioDoBaseline);
-    expect(a.raioDoBaseline).toBe(razaoParaRaio(1, FAIXA));
+    expect(a.raioDoBaseline).toBe(razaoParaRaio(1, ESCALA));
   });
 
   it('todos os eixos indisponiveis nao produzem poligono degenerado, produzem poligono nenhum', () => {
     const p = plotarHexagono({
       eixos: CHAVES.map((k) => eixo(k, { status: 'indisponivel', motivo: 'sem_baseline' })),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     expect(p.vertices).toEqual([]);
     expect(p.indisponiveis).toHaveLength(6);
@@ -160,7 +199,7 @@ describe('segmentos', () => {
         faltando.includes(i) ? eixo(e.key, { status: 'indisponivel', motivo: 'sem_medida' }) : e,
       ),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
   }
 
@@ -237,7 +276,7 @@ describe('pontos', () => {
     const p = plotarHexagono({
       eixos: seis([1, 1, 1, 1, 1, 1]),
       limiarEstavel: LIMIAR,
-      faixa: FAIXA,
+      escalaRadial: ESCALA,
     });
     const centro = { x: 160, y: 200 };
     for (const ponto of pontos(p.vertices, centro, 0)) {
@@ -257,7 +296,11 @@ describe('propriedades', () => {
   it('nenhum vertice sai do grafico nem colapsa no centro', () => {
     fc.assert(
       fc.property(fc.array(ratioArb, { minLength: 6, maxLength: 6 }), (ratios) => {
-        const p = plotarHexagono({ eixos: seis(ratios), limiarEstavel: LIMIAR, faixa: FAIXA });
+        const p = plotarHexagono({
+          eixos: seis(ratios),
+          limiarEstavel: LIMIAR,
+          escalaRadial: ESCALA,
+        });
         for (const v of p.vertices) {
           expect(v.raio).toBeGreaterThanOrEqual(0.25);
           expect(v.raio).toBeLessThanOrEqual(1);
@@ -271,11 +314,15 @@ describe('propriedades', () => {
   it('espelhar as razoes em torno de 1 espelha as direcoes, igual nos seis eixos', () => {
     fc.assert(
       fc.property(fc.array(ratioArb, { minLength: 6, maxLength: 6 }), (ratios) => {
-        const direto = plotarHexagono({ eixos: seis(ratios), limiarEstavel: LIMIAR, faixa: FAIXA });
+        const direto = plotarHexagono({
+          eixos: seis(ratios),
+          limiarEstavel: LIMIAR,
+          escalaRadial: ESCALA,
+        });
         const espelho = plotarHexagono({
           eixos: seis(ratios.map((r) => 2 - r)),
           limiarEstavel: LIMIAR,
-          faixa: FAIXA,
+          escalaRadial: ESCALA,
         });
         const inverte = { fora: 'dentro', dentro: 'fora', estavel: 'estavel' } as const;
         expect(espelho.vertices.map((v) => v.direcao)).toEqual(
@@ -295,7 +342,7 @@ describe('propriedades', () => {
               : e,
           ),
           limiarEstavel: LIMIAR,
-          faixa: FAIXA,
+          escalaRadial: ESCALA,
         });
         if (faltando.length === 0) {
           expect(p.segmentos.every((s) => s.fechado)).toBe(true);
@@ -325,7 +372,7 @@ describe('propriedades', () => {
     fc.assert(
       fc.property(fc.array(estadoArb, { minLength: 1, maxLength: 6 }), (estados) => {
         const eixos = estados.map((e, i) => eixo(`e${i}`, e));
-        const p = plotarHexagono({ eixos, limiarEstavel: LIMIAR, faixa: FAIXA });
+        const p = plotarHexagono({ eixos, limiarEstavel: LIMIAR, escalaRadial: ESCALA });
         const saida = [...p.vertices.map((v) => v.key), ...p.indisponiveis.map((e) => e.key)];
         expect(saida.slice().sort()).toEqual(
           eixos

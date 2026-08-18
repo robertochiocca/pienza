@@ -65,6 +65,20 @@ push com `;` em vez de `&&`. Ver `docs/decisoes/0012-protecao-de-branch.md`. Est
 deste arquivo cuja aplicação mora fora do repositório: enquanto a chave não estiver ligada no
 console, o registro honesto é que este gate não existe.
 
+**1.3.2 — Nenhum gate entra sem ter sido visto reprovando o defeito que ele existe para pegar,
+e a verificação do negativo é registrada junto.** Um gate que nunca disparou é indistinguível de
+um gate quebrado. Gate decorativo é pior que gate ausente, porque desliga a desconfiança de quem
+revisa: o build fica verde e alguém acredita nele.
+
+Na prática isso quer dizer: reintroduzir o defeito, ver o gate ficar vermelho, ler a mensagem, e
+só então restaurar. Onde o gate for função pura sobre dados — a maioria deles aqui — isso vira
+fixture com caso positivo e caso negativo, e o auto-teste roda antes da varredura de verdade.
+
+Isto não é teoria. No ciclo 7 o gate de quadro do harness deu verde na primeira tentativa de
+negativo, e eu quase o dei por verificado: eu tinha reintroduzido só metade do defeito, porque
+tinha creditado a correção à linha errada. O gate estava certo, a minha reprodução é que estava
+pela metade. A regra pegou os dois erros — o do gate e o meu.
+
 **1.4 — `permissions` declarado explicitamente em todo workflow.** Começa em `contents: read` e
 só sobe onde precisar, com justificativa.
 
@@ -210,6 +224,7 @@ continua sendo insuficiente sozinho — é por isso que existe a 1.3.1.
 - auditoria de dependência: nenhum advisory fora de `scripts/auditoria-aceita.json`
 - regra de mecânicas proibidas da seção 3
 - nenhuma dependência nova em `packages/domain` — o domínio é puro
+- gate novo com o negativo verificado e registrado, pela 1.3.2
 
 **Gate humano — você para e me apresenta, sempre:**
 

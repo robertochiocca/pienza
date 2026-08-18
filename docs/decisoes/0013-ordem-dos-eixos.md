@@ -1,95 +1,167 @@
-# 0013 — A ordem dos eixos move o resumo que o gráfico dá, e a coluna é `proportion_axes`
+# 0013 — O hexágono amplifica 4× no raio, e a ordem dos eixos move a área
 
-Data: 2026-08-18
-Situação: aceita
+Data: 2026-08-18 (reescrita em 2026-08-19: os dois achados trocaram de peso)
+Situação: aceita para o que registra; **duas perguntas abertas**, na seção final
 
 ## Contexto
 
-Existem **duas** colunas `display_order` neste schema, e a distinção entre elas passou a
-importar:
+Dois achados saíram da mesma rodada de contas sobre o hexágono. Eles são independentes, e o
+segundo é o que importa mais — a primeira versão deste documento os apresentava na ordem
+inversa, e trocar essa ordem é a razão da reescrita.
 
-- `measurement_keys.display_order` — a ordem da sessão guiada, que segue o caminho da fita pelo
-  corpo. Foi ela que motivou levar a ordem para o banco: ajustar o caminho depois de ver alguém
-  medindo tem que ser mudança de dado e não de código.
-- `proportion_axes.display_order` — a ordem dos eixos ao redor do hexágono.
+### Achado principal: o mapeamento de razão para raio amplifica
 
-Elas são independentes desde a primeira migração, e **é a segunda que este documento trata.**
-Registro isso explicitamente porque a suposição natural — e a que eu mesmo carreguei ao começar a
-escrever — é que a ordem da fita governa a ordem do gráfico. Não governa. Mexer no caminho da
-fita não move o hexágono de ninguém, e a liberdade que motivou aquela decisão continua intacta.
+`razaoParaRaio` leva uma razão contra o baseline para uma fração do raio, dentro de uma faixa
+`[a, b]` e a partir de um raio mínimo `m`. A elasticidade na razão 1 é
 
-O que apareceu no ciclo 7: **a ordem dos eixos muda a área do polígono com os dados intactos.**
+    E = (1 − m) / [ (b − a) · ( m + (1 − m)·(1 − a)/(b − a) ) ]
 
-A área de um polígono radar de seis eixos igualmente espaçados é
+Com os valores em vigor — `a = 0,85`, `b = 1,15`, `m = 0,25` — isso dá **exatamente 4**. Uma
+razão 2% maior vira um raio 8% maior. A área de um polígono vai com o quadrado do raio, então
+ela se move perto de 8 vezes o que a razão se moveu: 8 no limite, 8,3 num passo finito de 2%.
 
-    A = (√3/4) · Σ rᵢ · rᵢ₊₁     (índices cíclicos)
+**A correção de vocabulário importa e está feita aqui:** `razaoParaRaio` amplifica **4×**, não 8.
+O 8 é a área, e ele já inclui o quadrado. A primeira versão deste documento dizia "razaoParaRaio
+amplifica cerca de 8 vezes", que pendura na função um fator que é metade dela e metade da
+geometria do polígono. Quem ler isto daqui a um ano precisa dos dois números separados.
 
-Ela soma produtos de **vizinhos**, não de todos os pares. Vizinhança é função da ordem, então
-permutar os eixos muda a área sem alterar uma única medida — grandes contra grandes somam mais
-que grandes intercalados com pequenos.
+Os dois parâmetros puxam em sentidos opostos, e a direção do segundo é contra-intuitiva:
 
-Medido sobre os raios que este app de fato desenha (`razaoParaRaio`, faixa 0,85–1,15, raio mínimo
-0,25), varrendo as 720 permutações:
+| escala                                | elasticidade do raio |
+|---------------------------------------|----------------------|
+| faixa ±5%, m = 0,25                    | 12,0                 |
+| faixa ±10%, m = 0,25                   | 6,0                  |
+| **faixa ±15%, m = 0,25 (em vigor)**    | **4,0**              |
+| faixa ±25%, m = 0,25                   | 2,4                  |
+| faixa ±15%, m = 0                      | 6,67                 |
+| faixa ±15%, m = 0,5                    | 2,22                 |
 
-| corpo                                      | quanto a ordem move a área |
-|--------------------------------------------|---------------------------|
-| equilibrado, razões de 0,97 a 1,03           | 1,1%                      |
-| desproporcional, razões de 0,87 a 1,14       | **20,1%**                 |
-| desproporcional saindo da faixa, 0,65 a 1,45 | 37,5%                     |
+Faixa mais estreita amplifica **mais**. Raio mínimo maior amplifica **menos** — com raio de
+partida maior, a mesma variação absoluta vira variação relativa menor. Eu tinha escrito o
+contrário sobre o raio mínimo antes de medir, e um teste pegou.
 
-E a comparação que decide: para o corpo desproporcional, um ganho real de 2% em **todas** as seis
-medidas move a área em 13,9%. Reordenar os eixos move 20,1%. **A ordem mexe 1,5 vez mais no
-"resumo" percebido do que meses de mudança no corpo** — e o efeito é maior exatamente para a
-pessoa cujo corpo é mais desproporcional, que é de quem o gráfico mais trata.
+Disso sai um fato desconfortável: o raio mínimo entrou por motivo geométrico — sem ele um
+vértice no mínimo da faixa cai no centro e o polígono colapsa — e é hoje o que mais segura o
+exagero. Sem ele a elasticidade seria 6,67 em vez de 4. **O número que mais contém o problema
+está no código por outro motivo, e ninguém o escolheu para isso.**
+
+### Achado secundário: a ordem dos eixos move a área
+
+A área de um radar de seis eixos igualmente espaçados é `A = (√3/4)·Σ rᵢ·rᵢ₊₁`, soma de produtos
+de **vizinhos**. Vizinhança é função da ordem, então permutar os eixos muda a área sem alterar
+nenhuma medida. Varrendo as 720 permutações sobre os raios plotados:
+
+| corpo                                  | quanto a ordem move a área |
+|----------------------------------------|----------------------------|
+| equilibrado, razões de 0,97 a 1,03      | 1,1%                       |
+| desproporcional, razões de 0,87 a 1,14  | **20,1%**                  |
+
+Contra 13,9%, que é o quanto um ganho real de 2% em **todas** as seis medidas move a área do
+corpo desproporcional. A ordem mexe 1,5 vez mais no resumo percebido do que meses de mudança no
+corpo.
+
+### Por que a amplificação pesa mais
+
+A ordenação tem confundidor: um `proportion_axes.display_order` congelado a neutraliza na
+prática, e o comentário de coluna protege contra descongelar por engano. Ela é uma alavanca que
+alguém precisa puxar.
+
+Amplificação não se neutraliza com nada. É sistemática, vale para uma pessoa só, atinge todo
+usuário toda vez, sobrevive a qualquer correção de ordem, e sobreviveria inclusive à troca do
+radar por outro gráfico se o mapeamento radial fosse reaproveitado. E o enunciado é o problema:
+um app cuja tese inteira é honestidade de medida exagerava a mudança em quatro vezes por uma
+escolha de desenho que nunca passou por decisão — a mesma família do que foi recusado no
+denominador do hexágono na ADR 0001, só que embutida numa constante em vez de num modelo.
 
 ## Decisão
 
-**`display_order` é dado que afeta a leitura do gráfico, e alterá-lo é mudança de produto
-sujeita a gate humano, não ajuste operacional.**
+**1. A escala radial sai do código e vira ajuste de produto.** As quatro constantes — as duas
+bordas da faixa, o raio mínimo e o limiar de estabilidade — entram em `product_settings` com
+natureza e motivo escritos, como o 28 e o 180. Os motivos dizem o que é verdade: escolhidas para
+a variação típica ocupar a maior parte da escala, sem fonte, arbitrárias dentro dessa intenção.
 
-Concretamente:
+**Os valores não mudam nesta decisão.** O que muda é deixarem de ser constante de código.
+Corrigir os valores é decisão separada e espera as perguntas abertas abaixo.
 
-- Um `UPDATE` em `proportion_axes.display_order` muda o resumo percebido de **todos** os
-  usuários, retroativamente, sobre check-ins já gravados, sem que nenhum dado tenha mudado.
-- `measurement_keys.display_order` segue livre: ela é o caminho da fita e não toca no gráfico.
-- A coluna carrega um comentário de banco dizendo isso, porque quem for mexer nela vai estar no
-  psql e não neste arquivo.
-- Nenhuma rotina automática — seed, migração de conveniência, script de manutenção — reordena.
+No domínio, os três números da escala viajam como um objeto único (`EscalaRadial`), sem valor
+padrão, pelo mesmo motivo de `limiarEstavel`: eles definem juntos o fator de amplificação, e
+escolher um sem os outros muda esse fator sem que ninguém tenha decidido mudá-lo.
 
-Isto **não** decide nada sobre a leitura por área em si. A área ser um canal de informação não
-intencional é problema aberto, e as saídas possíveis (tirar o preenchimento, normalizar pela
-média dos seis, ou abandonar o radar) esperam o teste de campo. Este documento registra apenas
-que, enquanto o radar existir, a ordem dos eixos é uma alavanca sobre o que as pessoas leem.
+**2. Reordenar eixos é mudança de produto, não ajuste operacional.** Um `UPDATE` em
+`proportion_axes.display_order` muda retroativamente o que todos os usuários leem sobre check-ins
+já gravados, sem nenhum dado ter mudado. O aviso está no comentário da coluna, que é onde quem
+estiver no psql prestes a rodar o `UPDATE` vai ler, com asserção de suíte que reprova se sumir.
+
+Existem duas colunas `display_order` e elas são independentes desde a primeira migração:
+`measurement_keys.display_order` é o caminho da fita pelo corpo e **não** toca no gráfico. Essa
+separação existia sem motivo escrito; agora tem. Quem for consolidá-las algum dia passa por aqui.
+
+## As duas perguntas abertas, e quem decide cada uma
+
+Elas se parecem e não são a mesma, e somá-las é o erro que este bloco existe para prevenir.
+
+### Pergunta 1 — leitura. A codificação cheio/vazado é legível e aprendível?
+
+**Quem responde: o campo.** Cinco pessoas, protocolo de três fases — A sem legenda, depois a
+frase e B, depois C com a pergunta comparativa. Quinze frases literais.
+
+Detector da leitura por área: se a primeira frase de três em cinco pessoas for sobre tamanho,
+total, ou melhorou/piorou no geral, a leitura por área está confirmada.
+
+Se confirmada, as saídas, na ordem honesta:
+
+- **A — tirar o preenchimento.** Resolve menos e não estraga nada. A área ainda se forma na
+  percepção, só mais fraca.
+- **B — normalizar cada eixo pela média dos seis.** Resolve a área e cobra um enunciado que quase
+  ninguém vai ler certo: normalizar **acopla** os seis eixos, porque a soma das razões
+  normalizadas é constante por construção. Quem ganhou braço e manteve o resto vê cinco vértices
+  recuarem sem ter perdido nada. Isso é verdade sobre repartição e é bem mais difícil de ler que
+  o problema que resolve. Não é da mesma classe do matiz único: o matiz único elimina um canal
+  sem criar nada, e este elimina um canal criando um acoplamento.
+- **C — abandonar o radar** por seis pequenos múltiplos. Resolve tudo e custa a gestalt.
+
+### Pergunta 2 — propósito. Um gráfico radar deve existir neste app?
+
+**Quem responde: o Roberto. O campo não responde isto, e um resultado bom na pergunta 1 não
+fecha a pergunta 2.**
+
+O argumento registrado antes do campo, para que não pareça ter vindo do resultado: a força do
+radar é a gestalt, e aqui a gestalt **é** o resumo espúrio. Isso não é defeito corrigível — é o
+gráfico fazendo o que radar faz. Para seis eixos sem valência comum, a característica principal
+do gráfico é o bug. O hexágono nasceu para responder "onde estou menos desenvolvido", que
+pressupõe um padrão externo; o app deixou de responder isso na ADR 0001. Pode ser resquício do
+enquadramento antigo.
+
+O que segura a saída C é o artefato de compartilhamento, que é a tese de crescimento do produto.
+Mas isso não obriga o card a reusar o hexágono, e reusar seria escolher o gráfico honesto para
+uso privado e o enganoso para uso público. **O card é problema de desenho separado e não deve ser
+resolvido por herança.**
 
 ## Consequências
 
-A separação das duas colunas, que existia desde a primeira migração sem que ninguém tivesse
-escrito por quê, passa a ter motivo escrito. Ela deixa de ser detalhe de modelagem e vira a coisa
-que impede um ajuste no caminho da fita de reescrever o gráfico de todo mundo. Quem for
-consolidar as duas colunas algum dia — e a tentação existe, porque hoje elas guardam quase a
-mesma ordem — precisa ler isto antes.
+Cinco pessoas dizendo que entenderam o desenho não respondem se o desenho deveria existir. O
+risco concreto deste ciclo é a pergunta 2 ser dada como fechada por um teste que não a mediu, e é
+por isso que ela está escrita aqui com dono nomeado.
 
-Um segundo achado do mesmo cálculo, registrado aqui porque tem a mesma origem e não tem ADR
-próprio ainda: **`razaoParaRaio` amplifica cerca de 8 vezes.** Com a faixa em 0,85–1,15 e raio
-mínimo 0,25, uma razão 2% maior vira um raio 8% maior e uma área 16,6% maior. O gráfico exagera
-a mudança quase uma ordem de grandeza, e isso é independente do problema de ordenação — vale
-mesmo com a ordem congelada. Também espera o campo.
+A escala em `product_settings` cria uma duplicação: o harness web não tem banco e carrega os
+quatro valores como literais. A fonte de verdade é o banco, a suíte fixa os valores do lado dele,
+e a saída de verdade é o app buscar os valores em vez de o harness adivinhá-los. Dívida
+declarada, registrada no próprio arquivo do harness.
 
 ## O que descartei
 
-**Congelar a ordem dos eixos no código.** Resolveria o efeito retroativo tirando a coluna do
-banco, e o problema não é ela ser editável — é a consequência de editá-la nunca ter sido escrita.
-Congelar também impediria a única correção legítima que pode aparecer: se o campo mostrar que a
-ordem atual induz uma leitura ruim, mudar a ordem é dado e não deploy.
+**Corrigir os valores agora.** Estreitar ou alargar a faixa muda o fator de amplificação, e não
+sei ainda se o problema a resolver é o fator ou o gráfico inteiro. Corrigir antes do campo seria
+escolher uma das saídas por conforto.
 
-**Unificar as duas colunas.** Elas guardam ordens quase iguais hoje e a duplicação parece
-acidental. Unificar acoplaria a leitura do gráfico ao caminho da fita, que é exatamente o
-acidente que este documento existe para prevenir.
+**Congelar a ordem dos eixos no código.** Tiraria a coluna do banco e impediria a única correção
+legítima que pode aparecer: se o campo mostrar que a ordem atual induz uma leitura ruim, mudar a
+ordem é dado e não deploy.
 
-**Ordenar os eixos do gráfico por valor**, para a área ficar estável. Deixaria a área quase
-constante e faria os eixos trocarem de lugar entre check-ins, o que é pior: a pessoa perderia a
-referência espacial que faz o gráfico ser comparável consigo mesmo.
+**Unificar as duas colunas `display_order`.** Elas guardam ordens quase iguais e a duplicação
+parece acidental. Unificar acoplaria a leitura do gráfico ao caminho da fita, que é exatamente o
+acidente que este documento previne.
 
-**Tratar isto como bug do gráfico e corrigir agora.** A correção certa depende de qual leitura as
-pessoas de fato fazem, e isso está sendo medido em campo. Corrigir antes do teste seria escolher
-uma das três saídas por conforto.
+**Ordenar os eixos por valor** para a área ficar estável. Faria os eixos trocarem de lugar entre
+check-ins, e a pessoa perderia a referência espacial que faz o gráfico ser comparável consigo
+mesmo.

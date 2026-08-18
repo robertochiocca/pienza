@@ -47,8 +47,38 @@ export interface PlotagemInput {
    * e ruido de fita. Quem chama assume a decisao no ponto de chamada.
    */
   readonly limiarEstavel: number;
-  /** Faixa de razao que a grade cobre. Constante de desenho, igual nos seis eixos. */
-  readonly faixa: { readonly min: number; readonly max: number };
+  /**
+   * A escala radial: que faixa de razao a grade cobre, e onde fica a borda de dentro.
+   *
+   * Os tres numeros sao uma decisao so e por isso viajam juntos: juntos eles definem
+   * o quanto o desenho amplifica, e eles puxam em sentidos opostos. Faixa mais
+   * estreita amplifica mais; raio minimo maior amplifica menos. Escolher um sem os
+   * outros muda o fator sem que ninguem tenha decidido muda-lo.
+   *
+   * Sem valor padrao, como `limiarEstavel`: sao numeros de produto e o dominio nao e
+   * lugar de guardar numero de produto. Os valores em vigor vivem em product_settings
+   * e o motivo esta escrito ao lado deles.
+   */
+  readonly escalaRadial: EscalaRadial;
+}
+
+export interface EscalaRadial {
+  /** Razao que cai na borda de dentro da grade. */
+  readonly razaoMinima: number;
+  /** Razao que cai na borda de fora. */
+  readonly razaoMaxima: number;
+  /**
+   * Fracao do raio ocupada pela borda de dentro.
+   *
+   * Nao e zero: um vertice desenhado no centro faria o poligono colapsar em cima de si
+   * mesmo, e dois eixos no minimo desenhariam a mesma figura que um.
+   *
+   * Ele tambem amortece a amplificacao, o que eu descobri medindo e nao ao escolhe-lo:
+   * quanto maior, menos o desenho exagera, porque o raio de partida e maior e a mesma
+   * variacao absoluta vira variacao relativa menor. Com a faixa em vigor, o raio minimo
+   * em 0,25 segura a elasticidade em 4; em zero ela seria 6,67.
+   */
+  readonly raioMinimo: number;
 }
 
 /**
@@ -85,13 +115,25 @@ const MOTIVOS: Record<MotivoIndisponivel, string> = {
   sem_baseline: 'ainda sem baseline',
 };
 
-/** Fracao do raio ocupada pela borda interna da faixa. Constante de desenho. */
-const RAIO_MINIMO = 0.25;
-
-export function razaoParaRaio(ratio: number, faixa: { min: number; max: number }): number {
-  const preso = Math.min(Math.max(ratio, faixa.min), faixa.max);
-  const fracao = (preso - faixa.min) / (faixa.max - faixa.min);
-  return RAIO_MINIMO + fracao * (1 - RAIO_MINIMO);
+/**
+ * Razao para fracao do raio.
+ *
+ * Este mapeamento amplifica, e o quanto sai inteiramente da escala recebida:
+ *
+ *   E = (1-m) / [ (b-a) * (m + (1-m)*(1-a)/(b-a)) ]     na razao 1
+ *
+ * Com a escala em vigor — a=0,85, b=1,15, m=0,25 — da exatamente 4: uma razao 2% maior
+ * vira um raio 8% maior. A area de um poligono vai com o quadrado do raio, entao ela se
+ * move perto de 8 vezes o que a razao se moveu — 8 no limite, 8,3 num passo de 2%.
+ *
+ * Nao ha nada de errado com amplificar; grade que nao amplifica nao mostra nada. O que
+ * importa e que o fator seja escolhido e nao herdado, e por isso os tres numeros que o
+ * produzem sao parametro e nao constante. Ver docs/decisoes/0013-ordem-dos-eixos.md.
+ */
+export function razaoParaRaio(ratio: number, escala: EscalaRadial): number {
+  const preso = Math.min(Math.max(ratio, escala.razaoMinima), escala.razaoMaxima);
+  const fracao = (preso - escala.razaoMinima) / (escala.razaoMaxima - escala.razaoMinima);
+  return escala.raioMinimo + fracao * (1 - escala.raioMinimo);
 }
 
 export function plotarHexagono(input: PlotagemInput): Plotagem {
@@ -127,7 +169,7 @@ export function plotarHexagono(input: PlotagemInput): Plotagem {
       key: eixo.key,
       label: eixo.label,
       anguloRad,
-      raio: razaoParaRaio(ratio, input.faixa),
+      raio: razaoParaRaio(ratio, input.escalaRadial),
       direcao,
       ratio,
     };
@@ -139,7 +181,7 @@ export function plotarHexagono(input: PlotagemInput): Plotagem {
     vertices,
     indisponiveis,
     segmentos: segmentar(anel),
-    raioDoBaseline: razaoParaRaio(1, input.faixa),
+    raioDoBaseline: razaoParaRaio(1, input.escalaRadial),
   };
 }
 

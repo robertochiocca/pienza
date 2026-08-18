@@ -16,6 +16,9 @@
 --
 -- Esta coluna e a de measurement_keys.display_order sao coisas diferentes e continuam
 -- separadas de proposito: aquela e o caminho da fita pelo corpo e nao toca no grafico.
+-- Este e o achado secundario. O principal e a amplificacao do mapeamento radial, que
+-- nao tem confundidor e atinge todo usuario toda vez: ver a mesma ADR e as linhas
+-- hexagon_* de product_settings.
 -- Ver docs/decisoes/0013-ordem-dos-eixos.md.
 comment on column proportion_axes.display_order is
   'Ordem dos eixos ao redor do hexagono. NAO e cosmetica: a area do poligono soma '

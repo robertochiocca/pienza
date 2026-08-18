@@ -4,6 +4,7 @@ export type {
   Direcao,
   EixoDeEntrada,
   EixoIndisponivel,
+  EscalaRadial,
   EstadoDoEixo,
   MotivoIndisponivel,
   Plotagem,

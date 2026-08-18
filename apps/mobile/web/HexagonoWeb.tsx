@@ -1,4 +1,4 @@
-import { plotarHexagono, pontos, type EixoDeEntrada } from '@pienza/domain';
+import { plotarHexagono, pontos, type EixoDeEntrada, type EscalaRadial } from '@pienza/domain';
 import { cor, FAMILIA, paleta, type NomeDePaleta } from '../src/theme';
 
 /**
@@ -32,7 +32,7 @@ export interface HexagonoProps {
   readonly palette: NomeDePaleta;
   readonly tamanho: number;
   readonly limiarEstavel: number;
-  readonly faixa: { readonly min: number; readonly max: number };
+  readonly escalaRadial: EscalaRadial;
   /** Texto do intervalo, ja formatado por quem sabe qual comparacao foi escolhida. */
   readonly rotuloDeIntervalo: string;
   /**
@@ -53,7 +53,7 @@ export function HexagonoWeb(props: HexagonoProps) {
   const plot = plotarHexagono({
     eixos: props.eixos,
     limiarEstavel: props.limiarEstavel,
-    faixa: props.faixa,
+    escalaRadial: props.escalaRadial,
   });
 
   const centro = { x: props.tamanho / 2, y: props.tamanho / 2 };

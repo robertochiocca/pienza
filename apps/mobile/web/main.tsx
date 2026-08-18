@@ -21,6 +21,14 @@ import { DISPOSITIVOS, modoPadrao, type Dispositivo, type ModoDeTeclado } from '
  * entra o que vai existir no aparelho.
  */
 
+/**
+ * Numeros de produto usados pelo harness.
+ *
+ * Sao copia. A fonte de verdade e product_settings, e o app vai le-los de la quando
+ * estiver ligado ao Supabase; o harness nao tem banco. A suite de banco fixa os valores
+ * do lado do banco, entao uma divergencia aparece la e nao aqui — divida declarada, e a
+ * unica saida real e o app buscar os valores em vez de o harness adivinha-los.
+ */
 const NUMEROS_DA_SESSAO = {
   // Ver product_settings: 180 dias para medida estrutural voltar a ser proposta.
   structuralRemeasureAfterDays: 180,
@@ -28,7 +36,7 @@ const NUMEROS_DA_SESSAO = {
   // medicao nenhuma por tras; esta aqui, no ponto de chamada, para nao passar por
   // constante de dominio.
   limiarEstavel: 0.01,
-  faixa: { min: 0.85, max: 1.15 },
+  escalaRadial: { razaoMinima: 0.85, razaoMaxima: 1.15, raioMinimo: 0.25 },
 };
 
 type Cenario = 'recorrente' | 'baseline';
@@ -321,7 +329,7 @@ function Harness() {
           palette={palette}
           tamanho={dispositivo.largura}
           limiarEstavel={NUMEROS_DA_SESSAO.limiarEstavel}
-          faixa={NUMEROS_DA_SESSAO.faixa}
+          escalaRadial={NUMEROS_DA_SESSAO.escalaRadial}
           rotuloDeIntervalo={CONJUNTOS[conjunto]!.intervalo}
         />
       </div>

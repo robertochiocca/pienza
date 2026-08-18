@@ -132,7 +132,7 @@ describe('propriedades da normalizacao', () => {
         const p = plotarHexagono({
           eixos: normalizarPelaMedia(ok(...rs)),
           limiarEstavel: 0.01,
-          faixa: { min: 0.85, max: 1.15 },
+          escalaRadial: { razaoMinima: 0.85, razaoMaxima: 1.15, raioMinimo: 0.25 },
         });
         expect(p.vertices).toHaveLength(6);
         expect(p.segmentos.every((s) => s.fechado)).toBe(true);

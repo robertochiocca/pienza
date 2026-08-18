@@ -6,7 +6,7 @@
 -- marcado com o motivo — ver scripts/gate-suite-papel.mjs.
 
 begin;
-select plan(16);
+select plan(19);
 
 -- Fixtures como superusuario: auth.users nao e escrita pelo cliente.
 insert into auth.users (id, email) values
@@ -205,6 +205,27 @@ select matches(
     where a.attrelid = 'measurement_keys'::regclass and a.attname = 'display_order'),
   'nao governa a ordem dos eixos',
   'a ordem da fita diz explicitamente que nao e a ordem do grafico');
+
+-- A escala radial do hexagono governa o quanto o desenho amplifica, e os tres numeros
+-- so fazem sentido escolhidos juntos. Estas assercoes existem para que mexer em um
+-- deles seja um ato: quem mudar tem que passar por aqui.
+select set_eq(
+  $$select key from product_settings where key like 'hexagon\_%'$$,
+  $$values ('hexagon_scale_ratio_min'), ('hexagon_scale_ratio_max'),
+           ('hexagon_scale_min_radius'), ('hexagon_stable_threshold')$$,
+  'a escala do hexagono vive em product_settings, e nao em constante de codigo');
+
+select is_empty(
+  $$select key from product_settings where key like 'hexagon\_%' and nature <> 'produto'$$,
+  'nenhum numero da escala do hexagono se apresenta como clinico');
+
+-- A simetria em torno de 1 e deliberada: faixa assimetrica daria mais espaco de desenho
+-- a uma das direcoes, que e o grafico opinando sobre qual delas importa.
+select is(
+  (select sum(value) from product_settings
+    where key in ('hexagon_scale_ratio_min', 'hexagon_scale_ratio_max')),
+  2.00::numeric,
+  'a faixa de razao e simetrica em torno de 1');
 
 reset role;
 
