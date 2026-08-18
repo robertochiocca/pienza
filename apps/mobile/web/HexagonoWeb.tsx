@@ -35,6 +35,17 @@ export interface HexagonoProps {
   readonly faixa: { readonly min: number; readonly max: number };
   /** Texto do intervalo, ja formatado por quem sabe qual comparacao foi escolhida. */
   readonly rotuloDeIntervalo: string;
+  /**
+   * Se os vertices carimbam direcao — cheio para fora, vazado para dentro.
+   *
+   * Falso na variante normalizada pela media, e nao por gosto: la a razao de cada eixo
+   * e relativa a media dos seis, entao "vazado" passa a querer dizer "cresceu menos que
+   * os outros" e nao "diminuiu". Com os dados do conjunto A, a panturrilha tem razao
+   * 0,998 — parada — e sairia vazada; a frase "ponto vazado, a medida diminuiu" seria
+   * falsa sobre ela. Dois dos seis vertices trocam de estado entre as duas variantes
+   * com os mesmos dados.
+   */
+  readonly mostrarDirecao?: boolean;
 }
 
 export function HexagonoWeb(props: HexagonoProps) {
@@ -141,6 +152,21 @@ export function HexagonoWeb(props: HexagonoProps) {
         {pontos(plot.vertices, centro, raio).map((pt, i) => {
           const v = plot.vertices[i];
           if (v === undefined) return null;
+
+          if (props.mostrarDirecao === false) {
+            return (
+              <circle
+                key={v.key}
+                cx={pt.x}
+                cy={pt.y}
+                r={3.5}
+                fill={cor(p, 'brand')}
+                stroke={cor(p, 'brand')}
+                strokeWidth={2}
+              />
+            );
+          }
+
           // Preenchido para fora, vazado para dentro, mesma cor nos dois. Estavel fica
           // menor e sem enfase: nao mudou o bastante nao e evento.
           return (

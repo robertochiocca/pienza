@@ -6,7 +6,7 @@
 -- marcado com o motivo — ver scripts/gate-suite-papel.mjs.
 
 begin;
-select plan(14);
+select plan(16);
 
 -- Fixtures como superusuario: auth.users nao e escrita pelo cliente.
 insert into auth.users (id, email) values
@@ -184,6 +184,29 @@ select is_empty(
   $$select 1 from proportion_ratios
      where baseline_checkin_id = 'aaaaaaaa-0000-0000-0000-000000000001'$$,
   'editar medida do baseline invalida as razoes calculadas contra ele');
+
+-- A ordem dos eixos do hexagono muda a area do poligono sem mudar dado nenhum, e o
+-- comentario da coluna e o unico lugar onde quem esta no psql, prestes a rodar o
+-- UPDATE, vai ler isso. Comentario some em silencio numa recriacao de tabela; estas
+-- duas assercoes sao o que impede. Ver docs/decisoes/0013-ordem-dos-eixos.md.
+-- papel: superusuario porque col_description le o catalogo do sistema
+set local role postgres;
+
+select matches(
+  (select col_description(a.attrelid, a.attnum)
+     from pg_attribute a
+    where a.attrelid = 'proportion_axes'::regclass and a.attname = 'display_order'),
+  'docs/decisoes/0013',
+  'a ordem dos eixos avisa no proprio catalogo que reordenar muda o que todos leem');
+
+select matches(
+  (select col_description(a.attrelid, a.attnum)
+     from pg_attribute a
+    where a.attrelid = 'measurement_keys'::regclass and a.attname = 'display_order'),
+  'nao governa a ordem dos eixos',
+  'a ordem da fita diz explicitamente que nao e a ordem do grafico');
+
+reset role;
 
 select * from finish();
 rollback;

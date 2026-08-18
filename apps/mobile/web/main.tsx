@@ -225,11 +225,18 @@ function Harness() {
           }}
         >
           <Faixa altura={dispositivo.topo} p={p} texto="" />
-          {/* `width` explicito e `minWidth: 0` nos dois niveis. Sem eles o navegador
-              deixa a caixa da tela crescer ate o conteudo — o `<input>` com fonte de
-              105px tem largura intrinseca de 1293px — e o quadro do aparelho vira
-              apenas uma janela recortando uma tela de 1410px. O que aparecia era uma
-              tela plausivel com o rodape inteiro fora do campo de visao. */}
+          {/* Sem isto o navegador deixa a caixa da tela crescer ate o conteudo — o
+              `<input>` com fonte de 105px tem largura intrinseca de 1293px — e o quadro
+              do aparelho vira uma janela recortando uma tela de 1410px. O que saia era
+              uma tela plausivel com o rodape inteiro fora do campo de visao.
+
+              Quem resolve e o `overflow: hidden`, e nao o `minWidth: 0` que eu tinha
+              creditado no ciclo 6: `min-width: auto` so vale para item de flex com
+              overflow visivel, entao esconder o transbordo ja libera a caixa a encolher.
+              Qualquer um dos dois sozinho basta — medi os tres casos. Ficam os dois
+              porque o `overflow` existe para recortar o que passar e o `minWidth`
+              existe para dizer que pode encolher, e cada um continua certo pelo proprio
+              motivo se o outro sair. O gate de quadro cobre a volta do defeito. */}
           <div
             style={{
               height: alturaDaTela,

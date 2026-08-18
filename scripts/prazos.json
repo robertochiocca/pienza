@@ -1,0 +1,30 @@
+{
+  "comentario": [
+    "Dividas com prazo. Cada entrada tem uma condicao de saida verificavel e uma data.",
+    "",
+    "Depois da data, o gate reprova o build ate a divida sair ou a entrada ser reescrita",
+    "com nova data e novo motivo. Reescrever e permitido e e o ponto: prorrogar passa a",
+    "ser um ato, com data e justificativa ao lado, em vez de acontecer por ninguem ter",
+    "olhado.",
+    "",
+    "A condicao e verificada de verdade quando da. `pacote_ausente` confere o package.json;",
+    "`pacote_presente` confere o contrario. Uma divida cuja condicao ja foi satisfeita",
+    "reprova o build tambem, pelo mesmo motivo da lista de auditoria: entrada que",
+    "sobrevive ao motivo e permissao acumulada sem decisao."
+  ],
+  "prazos": [
+    {
+      "id": "react-native-so-pelos-tipos",
+      "vence_em": "2026-09-01",
+      "condicao": "pacote_presente",
+      "manifesto": "apps/mobile/package.json",
+      "pacote": "expo",
+      "o_que_e": "react-native esta em devDependencies de apps/mobile so pelos tipos de View, Text, TextInput, Pressable, ScrollView e StyleSheet. Nenhuma linha de produto depende dele: o harness roda em react-native-web e o empacotador e o esbuild. Com ele vieram cerca de quatrocentos pacotes e os dois advisories do image-size que estao em scripts/auditoria-aceita.json.",
+      "por_que_agora": "As telas precisam ser checadas contra a API do aparelho e nao contra a do react-native-web. A alternativa era eu escrever as declaracoes a mao, e ai as telas passariam a ser checadas contra a minha ideia de React Native — cada prop errada virando um bug que so aparece no aparelho, que e a classe de erro que o harness existe para eliminar.",
+      "saida": "Expo entra e o react-native passa a ser dependencia de verdade, com o Metro rodando. A condicao verificada e `expo` aparecer no manifesto.",
+      "saida_alternativa": "Se o Expo nao entrar ate a data, o react-native sai e as declaracoes vao a mao. Nao ha terceira opcao e nao ha prorrogacao silenciosa.",
+      "combinado_em": "2026-08-18",
+      "nota_sobre_a_data": "O combinado foi 'ciclo 8', e ciclo nao e coisa que um gate saiba contar. A data e a traducao mecanica disso, com folga: os ciclos 5, 6 e 7 sairam em 16, 18 e 18 de agosto."
+    }
+  ]
+}

@@ -13,13 +13,20 @@ import { chromium } from 'playwright';
 import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { autoTeste, problemas } from './verificar-quadro.mjs';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const SAIDA = process.argv[2] ?? resolve(RAIZ, 'docs/capturas');
 const ENDERECO = process.env.PIENZA_HARNESS ?? 'http://localhost:5173/';
 const EXECUTAVEL = process.env.PIENZA_CHROMIUM;
 
+// O auto-teste roda antes de o navegador subir. Um gate que nunca disparou e
+// indistinguivel de um gate quebrado, e este so dispara quando a tela ja esta errada.
+console.log(`gate de quadro: ${await autoTeste()} casos de auto-teste ok`);
+
 await mkdir(SAIDA, { recursive: true });
+
+let reprovadas = 0;
 
 const navegador = await chromium.launch(
   EXECUTAVEL === undefined ? {} : { executablePath: EXECUTAVEL },
@@ -37,7 +44,63 @@ async function clicar(rotulo) {
   await pagina.waitForTimeout(80);
 }
 
-async function foto(nome, seletor = '[data-quadro="aparelho"]') {
+/**
+ * Mede a arvore de caixas dentro do quadro e devolve o que transborda.
+ *
+ * Le do navegador e nao do meu modelo do layout: foi o navegador que revelou a tela de
+ * 1410 pontos, quando o meu modelo dela dizia 390.
+ */
+async function medirQuadro(seletor) {
+  return pagina.evaluate((sel) => {
+    const quadro = document.querySelector(sel);
+    if (quadro === null) return { quadro: { largura: 0 }, caixas: [] };
+    const base = quadro.getBoundingClientRect();
+    // Caixa de conteudo e nao de borda: a borda de 1px de cada lado do quadro e
+    // moldura do harness, e comparar contra ela daria dois pontos de folga silenciosa.
+    const largura = quadro.clientWidth;
+    const borda = (base.width - largura) / 2;
+
+    const caixas = [];
+    const anda = (el, caminho) => {
+      let i = 0;
+      for (const filho of el.children) {
+        // O indice entra no nome porque a arvore e quase toda div: sem ele a mensagem
+        // aponta para `div>div>div` e nao ajuda ninguem a achar o elemento.
+        const nome = `${caminho}>${filho.tagName.toLowerCase()}[${i}]`;
+        i += 1;
+        // O bloco do teclado e cenario do harness e nao tela: ele tem a largura do
+        // aparelho de proposito e nao responde pelo layout do produto.
+        if (filho.dataset?.teclado !== undefined) continue;
+        const b = filho.getBoundingClientRect();
+        const texto = (filho.textContent ?? '').trim().slice(0, 20);
+        caixas.push({
+          nome: texto === '' ? nome : `${nome} "${texto}"`,
+          x: b.left - base.left - borda,
+          largura: b.width,
+        });
+        anda(filho, nome);
+      }
+    };
+    anda(quadro, 'quadro');
+
+    return { quadro: { largura }, caixas };
+  }, seletor);
+}
+
+async function foto(nome, seletor = '[data-quadro="aparelho"]', larguraDeclarada) {
+  const medida = await medirQuadro(seletor);
+  const achados = problemas(
+    medida.caixas,
+    larguraDeclarada === undefined ? medida.quadro : { ...medida.quadro, larguraDeclarada },
+  );
+
+  if (achados.length > 0) {
+    console.error(`   ${nome}.png REPROVADA`);
+    for (const a of achados) console.error(`      ${a}`);
+    reprovadas += 1;
+    return;
+  }
+
   await pagina.locator(seletor).screenshot({ path: `${SAIDA}/${nome}.png` });
   console.log(`   ${nome}.png`);
 }
@@ -138,4 +201,24 @@ await campo.waitForTimeout(200);
 await campo.screenshot({ path: `${SAIDA}/22-campo-B-noturno.png` });
 console.log('   22-campo-B-noturno.png');
 
+// Variante C: o conjunto A com cada eixo dividido pela media dos seis. Sem carimbo de
+// direcao nos vertices — ver HexagonoWeb.
+await campo.getByRole('button', { name: 'bandeira', exact: true }).click();
+await campo.getByRole('button', { name: 'C', exact: true }).click();
+await campo.waitForTimeout(200);
+await campo.screenshot({ path: `${SAIDA}/23-campo-C-normalizado.png` });
+console.log('   23-campo-C-normalizado.png');
+
+await campo.getByRole('button', { name: 'A', exact: true }).click();
+await campo.waitForTimeout(200);
+await campo.screenshot({ path: `${SAIDA}/24-campo-A-para-comparar.png` });
+console.log('   24-campo-A-para-comparar.png');
+
 await navegador.close();
+
+if (reprovadas > 0) {
+  console.error(`\ngate de quadro: ${reprovadas} captura(s) reprovada(s).`);
+  console.error('Uma captura que nao cabe no quadro sai recortada e parece legitima.');
+  console.error('Corrija o layout — ou o proprio harness — antes de olhar a imagem.');
+  process.exit(1);
+}

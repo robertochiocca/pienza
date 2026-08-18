@@ -55,6 +55,16 @@ export default tseslint.config(
     },
   },
   {
+    // capturar.mjs roda em Node, mas o corpo de `page.evaluate` e serializado e
+    // executado dentro do navegador — e la `document` existe. E o unico arquivo do
+    // repositorio com codigo de dois runtimes, e por isso a excecao e nominal: incluir
+    // `document` na lista dos scripts em geral esconderia erro de verdade nos outros.
+    files: ['apps/mobile/scripts/capturar.mjs'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly', document: 'readonly' },
+    },
+  },
+  {
     // Arquivos JavaScript soltos — este proprio config e os scripts de gate — nao
     // pertencem a nenhum tsconfig, e o typescript-eslint com `projectService`
     // reprova com "was not found by the project service" em vez de simplesmente

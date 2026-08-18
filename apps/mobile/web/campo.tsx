@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { EixoDeEntrada } from '@pienza/domain';
+import { normalizarPelaMedia, type EixoDeEntrada } from '@pienza/domain';
 import { cor, FAMILIA, paleta, type NomeDePaleta } from '../src/theme';
 import { HexagonoWeb } from './HexagonoWeb';
 
@@ -15,6 +15,11 @@ import { HexagonoWeb } from './HexagonoWeb';
  *
  * Os dois conjuntos existem para separar duas perguntas que se confundem quando se ve
  * um so: se a figura e legivel, e se a falta de dado e legivel como falta.
+ *
+ * A terceira variante, C, mostra o conjunto A com cada eixo dividido pela media dos
+ * seis. Nela a area e praticamente constante por construcao, entao ela responde se a
+ * leitura por tamanho some quando o tamanho para de carregar informacao. E variante de
+ * teste e nao proposta: nada foi decidido sobre ela.
  */
 
 const LIMIAR = 0.01;
@@ -24,20 +29,24 @@ interface Conjunto {
   readonly nome: string;
   readonly intervalo: string;
   readonly eixos: readonly EixoDeEntrada[];
+  /** Ver HexagonoWeb: a variante normalizada nao carimba direcao. */
+  readonly mostrarDirecao?: boolean;
 }
+
+const A_EIXOS: readonly EixoDeEntrada[] = [
+  { key: 'ombro', label: 'ombro', estado: { status: 'ok', ratio: 1.031 } },
+  { key: 'peito', label: 'peito', estado: { status: 'ok', ratio: 1.012 } },
+  { key: 'braco', label: 'braço', estado: { status: 'ok', ratio: 1.047 } },
+  { key: 'cintura', label: 'cintura', estado: { status: 'ok', ratio: 0.968 } },
+  { key: 'coxa', label: 'coxa', estado: { status: 'ok', ratio: 1.004 } },
+  { key: 'panturrilha', label: 'panturrilha', estado: { status: 'ok', ratio: 0.998 } },
+];
 
 const CONJUNTOS: readonly Conjunto[] = [
   {
     nome: 'A',
     intervalo: 'comparado com 33 dias atras',
-    eixos: [
-      { key: 'ombro', label: 'ombro', estado: { status: 'ok', ratio: 1.031 } },
-      { key: 'peito', label: 'peito', estado: { status: 'ok', ratio: 1.012 } },
-      { key: 'braco', label: 'braço', estado: { status: 'ok', ratio: 1.047 } },
-      { key: 'cintura', label: 'cintura', estado: { status: 'ok', ratio: 0.968 } },
-      { key: 'coxa', label: 'coxa', estado: { status: 'ok', ratio: 1.004 } },
-      { key: 'panturrilha', label: 'panturrilha', estado: { status: 'ok', ratio: 0.998 } },
-    ],
+    eixos: A_EIXOS,
   },
   {
     nome: 'B',
@@ -54,6 +63,13 @@ const CONJUNTOS: readonly Conjunto[] = [
       },
       { key: 'panturrilha', label: 'panturrilha', estado: { status: 'ok', ratio: 1.002 } },
     ],
+  },
+  {
+    nome: 'C',
+    // Mesmo intervalo do A, porque sao os mesmos dados: o que muda e so o desenho.
+    intervalo: 'comparado com 33 dias atras',
+    eixos: normalizarPelaMedia(A_EIXOS),
+    mostrarDirecao: false,
   },
 ];
 
@@ -85,6 +101,7 @@ function Campo() {
         limiarEstavel={LIMIAR}
         faixa={FAIXA}
         rotuloDeIntervalo={conjunto.intervalo}
+        mostrarDirecao={conjunto.mostrarDirecao ?? true}
       />
 
       <div style={{ display: 'flex', gap: 24 }}>

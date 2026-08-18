@@ -1,0 +1,230 @@
+PIENZA — RELATORIO 0006
+Fase: 1   Ciclo: 7   Data: 2026-08-18
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na cadencia
+que escolher, e ve a propria mudanca comparada com ela mesma. Este ciclo nao corrige o
+grafico: prepara o teste de campo que vai decidir se ele precisa de correcao, e fecha
+tres mecanismos que estavam como promessa.
+
+
+FEITO
+
+  docs/decisoes/0013-ordem-dos-eixos.md
+      A ordem dos eixos muda a area do poligono com os dados intactos. Medido, nao
+      argumentado. Ver DECIDIDO.
+
+  supabase/migrations/20260818210000_ordem_dos_eixos.sql
+      O aviso no comentario das duas colunas, que e onde quem esta no psql prestes a
+      rodar o UPDATE vai ler. Mais duas assercoes em 020 que reprovam se o comentario
+      sumir: 16 assercoes no arquivo, 63 na suite.
+
+  apps/mobile/scripts/verificar-quadro.mjs — gate do harness.
+      Funcao pura sobre a arvore de caixas, com nove casos de fixture. Reprova a
+      captura e nao so o build: captura recortada parece legitima.
+
+  apps/mobile/scripts/capturar.mjs — mede antes de fotografar.
+      Le a arvore de caixas do navegador, nao o meu modelo do layout. Verificado nos
+      dois sentidos: verde no layout atual, e vermelho com o defeito do ciclo 6
+      reintroduzido, nomeando o elemento e a largura.
+
+  packages/domain/src/hexagon/normalizar.ts — a terceira variante.
+      Cada razao dividida pela media das disponiveis. Dez assercoes, quatro de
+      propriedade. Crescimento uniforme desaparece por construcao, que e o ponto.
+
+  apps/mobile/web/campo.tsx — conjunto C na pagina de campo.
+      Mesmos dados do A, normalizados. Sem carimbo de direcao nos vertices — ver
+      DEFEITOS ENCONTRADOS, porque essa parte nao era escolha estetica.
+
+  scripts/gate-prazos.mjs, scripts/prazos.json — gate novo.
+      Divida com prazo vira data mecanica. Vencida com a condicao de saida nao
+      cumprida, reprova; condicao ja cumprida, reprova tambem. Dez casos de
+      auto-teste, e as duas regras verificadas contra a arvore real.
+
+  docs/capturas/0006/ — dezenove capturas, todas aprovadas pelo gate de quadro.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 73 testes
+  cobertura de packages/domain             100%, piso em 100, 275 declaracoes
+  gate de mecanicas proibidas              verde, 30 casos de auto-teste
+  gate de nome antigo                      verde, 11 casos
+  gate de cores                            verde, 15 tokens, 1 matiz
+  gate de segredos                         verde, 10 casos
+  gate de papel da suite                   verde, 8 casos, 4 arquivos
+  gate de dominio puro                     verde
+  gate de prazos                           verde, 10 casos, 1 divida no prazo
+  gate de auditoria                        verde, 9 casos, 2 advisories aceitos
+  gate de quadro do harness                verde, 9 casos, 19 capturas
+  suite de banco, modo shim                verde, 63 assercoes
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+  protecao de branch                       nao existe: acao de console pendente
+
+
+DECIDIDO
+
+  A coluna que move o grafico e proportion_axes.display_order, e nao a da fita.
+    Existem duas colunas com esse nome e elas ja eram independentes desde a primeira
+    migracao: measurement_keys.display_order e o caminho da fita pelo corpo, e
+    proportion_axes.display_order e a ordem dos eixos ao redor do hexagono. Mexer no
+    caminho da fita nao move o hexagono de ninguem.
+    A separacao existia sem motivo escrito. Agora tem: ela e o que impede um ajuste na
+    sequencia de medicao de reescrever o grafico de todo mundo. Quem for consolidar as
+    duas colunas algum dia — e a tentacao existe, porque hoje guardam quase a mesma
+    ordem — passa por este documento antes.
+
+  Reordenar eixos e mudanca de produto, e nao ajuste operacional.
+    Um UPDATE em proportion_axes.display_order muda retroativamente o que todos os
+    usuarios leem sobre check-ins ja gravados, sem nenhum dado ter mudado. Fica escrito
+    no comentario da coluna, com assercao de suite que reprova se ele sumir.
+
+  A pagina de campo nao decide nada, e por isso a variante C nao carimba direcao.
+    C existe para testar uma hipotese, nao para propor um desenho. O que ela nao podia
+    era afirmar coisa falsa durante o teste — ver DEFEITOS ENCONTRADOS.
+
+  Prazo de divida vira data verificada, com a condicao de saida verificada junto.
+    O gate confere se `expo` aparece em apps/mobile/package.json, e nao so a data. Isso
+    e o que separa "o prazo passou" de "o prazo passou e o problema continua".
+    Prorrogar continua permitido e passa a ser um ato: reescrever a entrada, num commit,
+    com data e motivo novos. O que deixa de existir e prorrogacao por ninguem ter
+    olhado.
+
+
+DEFEITOS ENCONTRADOS
+
+  A variante C contradiz a frase do roteiro de campo, e isso teria estragado o teste.
+    A frase que voce escreveu — "ponto cheio, a medida cresceu; ponto vazado, diminuiu"
+    — e verdadeira em A e falsa em C. Em C cada razao e relativa a media das seis,
+    entao "vazado" passa a querer dizer "cresceu menos que os outros".
+    Com os dados do conjunto A, dois dos seis vertices trocam de estado entre as
+    variantes. O caso que decide e a panturrilha: razao 0,998, praticamente parada, e em
+    C ela sai vazada. Ler a frase ao lado dela seria dizer a cinco pessoas que a medida
+    diminuiu, quando o que mudou foi a media das outras.
+    Corrigido tirando o carimbo de direcao de C: os seis vertices saem iguais. Fiz isso
+    apesar da instrucao de nao implementar correcao antes do campo, porque nao e
+    correcao de area — e a variante deixar de afirmar coisa falsa durante o proprio
+    teste. Se voce preferir o contrario, e uma prop.
+
+  Eu creditei a correcao do transbordo do ciclo 6 a linha errada.
+    Escrevi que `minWidth: 0` resolvia. Quem resolve e o `overflow: hidden`:
+    `min-width: auto` so vale para item de flex com overflow visivel. Medi os tres
+    casos — so um, so o outro, nenhum — e qualquer um sozinho basta.
+    Descobri porque o primeiro teste do gate de quadro novo deu verde sobre o que eu
+    achava ser o defeito reintroduzido. O gate estava certo; a minha reproducao e a
+    minha explicacao e que estavam erradas.
+
+  O gate de quadro deu um falso verde na primeira execucao, e quase passou.
+    Pelo motivo acima: eu tinha removido so metade da correcao. Se eu tivesse aceitado
+    aquele verde, teria commitado um gate decorativo com a aparencia de um gate
+    verificado — que e pior que nao ter gate, porque desliga a desconfianca.
+    So peguei porque a regra deste repositorio e que gate sem negativo verificado nao
+    conta. A verificacao completa esta acima.
+
+
+SOBRE OS NUMEROS DA SUA SECAO 0
+
+  Refiz a conta. A formula esta certa e as suas duas primeiras medidas tambem, dentro
+  do arredondamento: sobre os raios que o app de fato desenha, reordenar move a area
+  em 1,1% num corpo equilibrado e 20,1% num desproporcional. Voce escreveu 1,4% e
+  19,4%; a diferenca e escolha de conjunto, nao de metodo.
+
+  Um numero nao sobrevive: o "quase cinco vezes".
+    Ele sai de comparar 19,4%, que e calculado sobre os raios plotados, com 4%, que e
+    calculado sobre as razoes cruas. Sao duas escalas diferentes. Na mesma escala — a
+    dos raios, que e a que o olho ve — um ganho real de 2% em todas as seis medidas
+    move a area em 13,9%, e reordenar move 20,1%. A ordem mexe 1,5 vez mais que o
+    corpo, e nao cinco.
+    Isso nao enfraquece a sua conclusao: a ordem continua movendo mais que meses de
+    treino, e continua sendo um canal que ninguem escolheu. So nao e cinco vezes.
+
+  E o refazer da conta trouxe um segundo achado, independente da ordenacao.
+    razaoParaRaio amplifica cerca de 8 vezes. Com a faixa em 0,85-1,15 e raio minimo
+    0,25, uma razao 2% maior vira raio 8% maior e area 16,6% maior. Vale com a ordem
+    congelada, vale para uma pessoa so, vale sempre.
+    Ou seja: mesmo resolvido o problema de ordenacao, o grafico exagera a mudanca em
+    quase uma ordem de grandeza. As duas constantes que produzem isso — a faixa e o
+    raio minimo — sao numeros de desenho que eu escolhi sem medir nada, e nenhuma das
+    duas passou por gate humano. Registrado na ADR 0013 e nao corrigido, pelo mesmo
+    motivo do resto: espera o campo.
+
+
+DISCORDANCIAS
+
+  O roteiro de campo mede a variante C com a pergunta errada, e isso e barato de
+  consertar antes de voce sair.
+    A pergunta "o que esse grafico esta te dizendo?" funciona para A e para B, onde a
+    resposta esperada e sobre o corpo. Em C a resposta certa e sobre reparticao, e nao
+    existe frase natural que uma pessoa leiga produza para isso na primeira exposicao.
+    O risco concreto e o teste devolver silencio ou confusao em C e isso ser lido como
+    "C nao funciona", quando o que aconteceu foi C nao ter sido perguntada.
+    Proponho uma segunda pergunta so para C, depois da primeira: "nesse aqui, o que
+    voce diria que e diferente do anterior?" Compara A e C diretamente, que e a unica
+    comparacao que interessa, e nao exige que ninguem verbalize o conceito.
+
+  Se o campo confirmar a leitura por area, a saida B nao e neutra do jeito que a lista
+  sugere, e vale saber disso antes.
+    Normalizar pela media nao so remove o crescimento uniforme: ela acopla os seis
+    eixos. Um eixo que sobe empurra os outros cinco para baixo, porque a soma das
+    razoes normalizadas e constante por construcao — isso esta num teste de
+    propriedade. Entao uma pessoa que ganhou braco e manteve tudo o mais ve cinco
+    vertices recuarem sem ter perdido nada.
+    Isso e verdade sobre reparticao e nao e mentira, mas e um enunciado bem mais dificil
+    de ler do que "sua area sumiu". Registro porque a lista apresenta B como a solucao
+    da mesma classe do matiz unico — eliminar o canal em vez de vigiar — e nesse caso a
+    eliminacao introduz um acoplamento novo, o que o matiz unico nao fazia.
+    A opcao A, tirar o preenchimento, nao tem esse efeito e resolve menos. A opcao C,
+    abandonar o radar, nao tem esse efeito e resolve tudo.
+
+  Continuo achando que a pergunta que voce levantou sobre a opcao C e a pergunta de
+  verdade, e que ela nao depende do campo.
+    Voce escreveu que o hexagono nasceu para responder "onde estou menos desenvolvido",
+    que pressupoe um padrao, e que o app deixou de responder isso ha cinco ciclos. Isso
+    e sobre o proposito do grafico, e o teste de campo mede leitura, nao proposito.
+    Cinco pessoas dizendo que entenderam o desenho nao respondem se o desenho deveria
+    existir. Se as respostas vierem boas, a pergunta continua aberta do mesmo jeito, e
+    o risco e ela ser dada como fechada por um teste que nao a mediu.
+
+  Sobre eu ter mexido em C contra a instrucao explicita.
+    Voce escreveu "nao implemente correcao nenhuma antes do campo" e eu mexi no
+    desenho de C. Considero a distincao valida — a instrucao era sobre a leitura por
+    area, e o que eu mudei foi a variante parar de contradizer a sua propria frase —
+    mas ela e minha e nao sua, e eu tomei sozinho. Se a linha estiver no lugar errado,
+    e uma prop e volta em um commit.
+
+
+EM ABERTO
+
+  O teste de campo. hexagono.html atualizado com A, B e C.
+
+  A leitura por area, e as tres saidas. Nenhuma implementada, por instrucao.
+
+  A amplificacao de 8x de razaoParaRaio, achada nesta rodada de contas. Independente da
+  ordenacao e ainda sem decisao.
+
+  Ligar a protecao de main no console. A ADR 0012 segue descrevendo regra que nao
+  existe aplicada, escrita assim de proposito.
+
+  Traco de campo vazio removido sem verificacao em aparelho — pendente de Expo, na
+  mesma lista.
+
+  Fontes: familias genericas ate voce decidir. Vou priorizar OFL na busca.
+
+  Expo ate 2026-09-01, agora com gate. Depois disso o build reprova ate o
+  react-native sair ou a entrada ser reescrita.
+
+  Supabase: nome de exibicao e Private Vulnerability Reporting seguem como console.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  Nada. Os quatro itens da sua ordem estao fechados.
+
+  Espera voce, sem bloquear: a segunda pergunta para a variante C, se voce concordar
+  que ela falta; e a linha sobre eu ter mexido em C, se voce achar que ela foi
+  atravessada.

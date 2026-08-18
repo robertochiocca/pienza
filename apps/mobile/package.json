@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "build:web": "node scripts/build-web.mjs",
     "serve:web": "node scripts/serve-web.mjs",
-    "capturar": "node scripts/capturar.mjs"
+    "capturar": "node scripts/capturar.mjs",
+    "gate:quadro": "node scripts/capturar.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",
