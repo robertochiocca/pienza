@@ -1,0 +1,190 @@
+PIENZA — RELATORIO 0004
+Fase: 1   Ciclo: 5   Data: 2026-08-16
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na
+cadencia que escolher, e ve a propria mudanca comparada com ela mesma. Este ciclo
+transforma o papel da suite de banco em invariante verificado, decide a janela de
+comparacao do hexagono, separa as fixtures dos gates, reordena a politica de
+seguranca por quem e lesado, e apresenta a tela de entrada de medidas para gate
+humano.
+
+
+FEITO
+
+  scripts/gate-suite-papel.mjs — gate novo.
+      Toda assercao da suite roda sob papel declarado. O padrao e authenticated.
+      Superusuario exige `-- papel: superusuario porque <motivo>`, e o marcador nao
+      sobrevive a troca de papel — cada `reset role` precisa do seu.
+      Auto-teste com oito casos, cada um um arquivo SQL inteiro, porque o gate e um
+      automato sobre o arquivo e nao um casamento de linha.
+
+  supabase/tests — vinte e oito assercoes convertidas.
+      010, 020, 030 e 040 agora declaram papel em toda assercao. O que e operacao de
+      cliente roda como authenticated; o que so a rotina de servidor faz roda como
+      superusuario, com o motivo escrito ao lado.
+
+  packages/domain/src/comparison — modulo novo.
+      selectComparison escolhe o check-in mais recente que seja pelo menos N dias
+      mais antigo que o atual. Tres saidas carimbadas: ok, baseline e nenhuma, esta
+      ultima com motivo. O alvo e sempre um check-in real.
+      Dois testes de propriedade: o alvo sempre existe no historico, e quando o
+      status e ok o intervalo nunca e menor que a janela.
+
+  supabase/migrations/20260816160000_ajustes_de_produto.sql
+      Tabela product_settings, com comparison_min_days = 28 e
+      structural_remeasure_days = 180. Cada linha carrega natureza — produto ou
+      clinico — e o motivo. Valor clinico exige fonte por restricao de banco; hoje
+      nao existe nenhum.
+
+  scripts/fixtures/ — diretorio novo.
+      Fixtures dos quatro gates saem dos scripts e passam a viver aqui, e cada gate
+      pula o diretorio na varredura.
+
+  scripts/db-test.sh — distingue ambiente quebrado de teste vermelho.
+
+  SECURITY.md — escopo reordenado por quem e lesado: terceiro que nao consentiu,
+      integridade do proprio historico, disponibilidade.
+
+  .github/workflows/ci.yml, package.json — gate de papel no loop.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 40 testes
+  cobertura de packages/domain             100%, piso em 100, 170 declaracoes
+  gate de mecanicas proibidas              verde, 30 casos de auto-teste
+  gate de nome antigo                      verde, 11 casos
+  gate de cores                            verde, 15 tokens, 1 matiz
+  gate de segredos                         verde, 10 casos
+  gate de papel da suite                   verde, 8 casos, 4 arquivos
+  gate de dominio puro                     verde
+  auditoria de dependencia                 verde, 0 vulnerabilidades
+  suite de banco, modo shim                verde, 61 assercoes
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+
+
+DECIDIDO
+
+  O invariante e sobre a assercao, e nao sobre o arquivo.
+    O marcador de superusuario vale ate a proxima troca de papel e nao ate o fim do
+    arquivo. Um marcador com escopo de arquivo seria uma isencao permanente escrita
+    uma vez no topo, que e a forma como excecao vira regra. Com escopo de secao, cada
+    `reset role` obriga a escrever de novo por que aquele trecho precisa de
+    privilegio — e escrever de novo e onde alguem percebe que nao precisa.
+
+  Converter, e nao so marcar.
+    Das vinte e oito assercoes sem papel, a maior parte virou authenticated em vez de
+    ganhar marcador. Marcar todas teria satisfeito o gate e mantido o problema: a
+    suite continuaria exercitando um programa com privilegio a mais. O gate existe
+    para forcar a pergunta, nao para produzir o carimbo.
+
+  A janela de comparacao e uma regra sobre distancia, e nao uma duracao.
+    "O check-in mais recente com pelo menos 28 dias de diferenca" trata cadencia
+    irregular sem caso especial: quem mede terca, quarta e some por dois meses cai na
+    mesma regra de quem mede toda semana. Uma duracao fixa precisaria de um ramo para
+    cada padrao de uso.
+
+  O alvo e sempre um check-in real.
+    Nao ha interpolacao. Um ponto que ninguem mediu, desenhado ao lado de um que
+    alguem mediu, tem a mesma aparencia e nao tem o mesmo estatuto — e o grafico nao
+    tem como dizer qual e qual.
+
+  Sem historico, a tela diz que nao ha comparacao.
+    O resultado e carimbado com motivo, e nao `null`. Poligono degenerado e hexagono
+    regular fingindo comparacao sao as duas saidas erradas, e as duas parecem
+    respostas.
+
+  Fixture em diretorio proprio.
+    Fixture e, por construcao, uma string que contem exatamente o que algum gate
+    procura. Ja houve colisao. Diretorio separado e exclusao mutua resolvem a classe;
+    trocar a string resolvia uma vez.
+
+
+DEFEITOS ENCONTRADOS
+
+  Eu empurrei um commit depois de o gate de banco reportar vermelho.
+    Encadeei verificacao e push no mesmo comando com `;` em vez de `&&`, entao o push
+    aconteceu independente do resultado. O vermelho era falso — o cluster local tinha
+    parado, e a suite estava verde — mas isso e sorte, nao processo. A regra do
+    AGENTS.md e commit apenas com o gate verde, e eu a quebrei por construcao de
+    comando.
+    Correcao estrutural aplicada ao runner: servidor inacessivel agora sai com codigo
+    proprio e mensagem dizendo que e ambiente e nao teste, em vez de se parecer com
+    uma suite reprovada. A correcao de processo e minha e nao tem gate: verificacao e
+    push nao vao mais no mesmo comando.
+
+  Como authenticated, a foto com caminho de outro dono e barrada pelo CHECK e nao
+  pela policy.
+    Eu tinha escrito a assercao esperando 42501 e ela deu 23514. A linha e do proprio
+    dono; so o caminho aponta para a pasta de outro, entao a policy passa e o CHECK
+    pega. Sao duas camadas cobrindo coisas diferentes, e eu tinha assumido que a
+    policy cobria as duas. O teste corrigiu a minha leitura, que e o unico jeito de
+    isso aparecer.
+
+
+DISCORDANCIAS
+
+  A justificativa dos 28 dias afirma um fato fisiologico com a etiqueta de numero de
+  produto, e as duas coisas nao cabem juntas.
+    O texto diz que 28 e "o intervalo mais curto em que mudanca de circunferencia
+    tende a superar a variacao de hidratacao, alimentacao e hora do dia somada ao
+    erro de fita". Isso e uma afirmacao empirica sobre corpos. Ou ela tem fonte, e
+    entao o numero e clinico e precisa de revisao de profissional pela regra que este
+    repositorio ja aplica, ou ela nao tem, e entao ela nao deveria estar escrita como
+    constatacao.
+    Nao discordo do numero. Discordo do texto ao lado dele, que e o que alguem vai
+    ler daqui a um ano para decidir se pode mexer. Gravei a linha como voce escreveu
+    e registro aqui que, na minha leitura, o motivo deveria dizer o que e verdade:
+    escolhido para ser longo o bastante que variacao de curto prazo nao domine, sem
+    fonte, arbitrario dentro dessa intencao. Se voce concordar, e um UPDATE de uma
+    linha.
+
+  O critério 5 e verdadeiro na maquete e so parcialmente verdadeiro no aparelho.
+    O vazio grande entre o numero e o rodape e o que faz o numero parecer maior. Mas
+    a tela de entrada e vista, quase sempre, com o teclado numerico ocupando o terco
+    inferior — e ai o vazio encolhe muito. A maquete mostra a tela sem teclado, que e
+    o estado menos frequente e o mais lisonjeiro.
+    Deixei o teclado indicado como faixa no rodape para nao esconder isso, mas a
+    proporcao real so aparece no aparelho. Nao mude nada por causa disto agora;
+    considere quando estiver rodando, e desconfie da maquete nesse ponto especifico.
+
+  Ausencia de botao e a resposta certa ao critério 1 e um risco de plataforma.
+    O avanco depende da tecla de retorno do teclado numerico. No iOS isso e
+    configuravel e previsivel; no Android o comportamento varia com o tipo de teclado
+    e com o que o fabricante instalou. Se numa parte relevante dos aparelhos a tecla
+    nao avancar, a saida nao e adicionar o botao que o critério 1 recusa — e uma acao
+    de texto no rodape, no mesmo peso de "pular". Registro antes de descobrir.
+
+  Sobre a lista de negativas: retiro parte do que escrevi no ciclo passado.
+    Eu disse que a sua lista era toda de negativas e que ausencia de defeito nao e
+    presenca de qualidade. Continua verdade, mas os cinco criterios afirmativos que
+    voce devolveu sao mais duros que a lista de negativas era — o primeiro deles
+    eliminou o botao primario, que e uma mudanca estrutural de tela e nao um ajuste.
+    A critica estava certa e a resposta a superou.
+
+
+EM ABERTO
+
+  Texto do motivo dos 28 dias, acima.
+
+  Como o hexagono comunica direcao sem semaforo. A regra ja decidida — preenchido
+  para fora, vazado para dentro, mesma cor — precisa ser vista em movimento antes de
+  eu acreditar nela, e o teste de "para fora = bom" nao e meu.
+
+  Renomear o repositorio no GitHub, nome de exibicao no Supabase e Private
+  Vulnerability Reporting seguem como acao de console.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  A tela. Abordagem A nas duas paletas, com a sequencia navegavel passo a passo, a
+  tela de medidas com a diferenca entre lados, os estados de baseline e de eixo
+  indisponivel, e os rotulos de intervalo. Publicada como pagina, com a resposta aos
+  cinco criterios ponto a ponto.
+  Nada de codigo de tela sera escrito antes da sua escolha.

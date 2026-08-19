@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    // DOM entra por causa de web/, que e o harness e roda no navegador. As telas em
+    // src/ nao tocam em nada de DOM; o gate de mecanicas nao cobre isso e a separacao
+    // hoje e so a pasta.
+    "lib": ["ES2022", "DOM"],
+    "types": ["react", "react-dom"],
+    "resolveJsonModule": true
+  },
+  // Sem alias de `react-native` aqui, de proposito. Os tipos vem do proprio
+  // react-native, que e a API que as telas vao encontrar no aparelho; quem troca a
+  // implementacao por react-native-web e o esbuild, na hora de empacotar o harness.
+  // Apontar os tipos para o react-native-web checaria as telas contra a plataforma
+  // errada, e o erro so apareceria no Expo.
+  "include": ["src", "web", "scripts"]
+}

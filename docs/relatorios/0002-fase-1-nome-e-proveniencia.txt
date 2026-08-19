@@ -1,0 +1,212 @@
+PIENZA — RELATORIO 0002
+Fase: 1   Ciclo: 3   Data: 2026-08-16
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na
+cadencia que escolher, e ve a propria mudanca comparada com ela mesma — sem ideal
+externo e sem comparacao com outras pessoas. Este ciclo renomeia o projeto,
+introduz o registro de como cada medida entrou, sobe o piso de cobertura, e monta
+a logica da entrada de medidas em sequencia guiada. As telas em si nao foram
+escritas, e o motivo esta em DISCORDANCIAS.
+
+
+FEITO
+
+  Renomeacao do projeto. Nome antigo registrado em
+    docs/decisoes/0006-nome-pienza.md, que e o unico lugar onde ele permanece por
+    decisao, junto com o relatorio 0001.
+      apps/mobile/app.json — identificador com.robertochiocca.pienza, slug e
+        scheme pienza. Criado antes das telas porque identificador de bundle e
+        imutavel apos a primeira publicacao.
+      package.json da raiz e do pacote de dominio, escopo @pienza/domain
+      supabase/config.toml, variavel PIENZA_DB_MODO, nome do banco descartavel
+      README, SECURITY.md, AGENTS.md, ADR 0002
+
+  scripts/gate-nome-antigo.mjs — gate novo, no npm run check e no CI. Auto-teste
+    com cinco fixtures positivas e seis negativas. Allowlist fechada e explicita,
+    mais uma verificacao de que nenhuma entrada da allowlist aponta para arquivo
+    inexistente.
+
+  docs/decisoes/0007-proveniencia-de-medida.md — ADR nova.
+  docs/decisoes/0008-reescrita-de-historico-e-autoria.md — ADR nova.
+  docs/decisoes/0009-piso-de-cobertura.md — ADR nova.
+
+  supabase/migrations/20260816130000_proveniencia_de_medida.sql
+      measurement_keys.kind ('structural' | 'variable'), sem default apos a carga
+        inicial: chave nova exige classificacao explicita
+      measurement_values.provenance ('typed' | 'kept'), not null e sem default
+      proportion_ratios.current_provenance e reference_provenance, obrigatorias
+        quando o eixo tem status ok
+      gatilho validate_baseline_provenance, que recusa abrir baseline sobre
+        medida variavel mantida e nomeia na mensagem quais faltam digitar
+
+  supabase/seed/vocabulario.sql — classificacao das dezessete chaves.
+  supabase/tests/030_proveniencia.sql — arquivo de teste novo.
+
+  packages/domain/src/session/ — modelo da sessao guiada, fora do React Native:
+      buildSessionPlan, que ordena os passos pelo vocabulario, decide o que vem
+        pre-preenchido e carrega estrutural recente sem virar passo
+      resolveEntries, que transforma respostas em linhas com o carimbo correto
+      variablesBlockingBaseline, para a tela avisar no passo em vez de deixar o
+        banco recusar depois
+      packages/domain/test/session.test.ts, com dois testes de propriedade
+
+  packages/domain/vitest.config.ts — piso de cobertura em 100.
+  README.md — a frase sobre cobertura passa a dizer o que ela cobre.
+
+
+GATE
+
+  format (prettier)                        verde
+  lint (eslint + typescript-eslint)        verde
+  typecheck (tsc)                          verde
+  testes do dominio                        verde, 30 testes
+  cobertura de packages/domain             100% em linhas, ramos, funcoes e
+                                           declaracoes, com piso em 100
+  gate de mecanicas proibidas              verde, 26 casos de auto-teste
+  gate de nome antigo                      verde, 11 casos de auto-teste
+  gate de dominio puro                     verde, zero dependencias
+  auditoria de dependencia                 verde, 0 vulnerabilidades
+  suite de banco, modo shim                verde, 49 assercoes
+                                           (24 isolamento, 14 travas, 11
+                                           proveniencia)
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+
+
+DECIDIDO
+
+  A proveniencia e coluna, e nao deducao a partir do valor anterior.
+    Comparar o numero com o do check-in passado nao distingue "mediu e deu igual"
+    de "nao mediu". Sao dois fatos diferentes sobre o mundo que produzem o mesmo
+    numero, e so um deles significa que alguem pegou a fita.
+
+  provenance nao tem valor padrao, e measurement_keys.kind perde o default depois
+  da carga inicial.
+    Um default aqui e o banco inventando a resposta. Sem ele, um insert que
+    esqueca de dizer como o valor entrou falha, e uma chave de medida nova exige
+    classificacao explicita em vez de herdar um palpite.
+
+  A trava do baseline e gatilho de banco, e a mensagem nomeia o que falta.
+    Baseline contaminado desloca os seis eixos para sempre e nao ha como
+    descobrir depois que ele era ruim. E o unico ponto do sistema onde a
+    contaminacao e irreversivel, o que justifica a regra estar abaixo de qualquer
+    camada de aplicacao. Erro que nao diz o que fazer vira suporte, entao a
+    excecao lista as medidas pendentes.
+
+  A mesma regra aparece na tela como ausencia de pre-preenchimento.
+    Em check-in que vai abrir baseline, medida variavel nao abre preenchida. Se
+    abrisse, a pessoa avancaria confirmando, os valores sairiam mantidos, e o
+    banco recusaria o baseline no fim — erro tardio sobre trabalho ja feito. A
+    trava continua no banco; a tela apenas deixa de conduzir para ela.
+
+  Os identificadores da coluna ficaram em ingles: 'typed' e 'kept'.
+    Todo o resto do schema e ingles — status, denominator_kind, angle, front — e
+    valores em portugues seriam o unico caso destoante. A correspondencia com
+    digitado e mantido esta escrita na ADR 0007 e no comentario da coluna. E
+    escolha minha sobre a nomenclatura sugerida, e reverter e um alter type.
+
+  A classificacao estrutural cobre altura, envergadura, cabeca, punho, joelho e
+  tornozelo — nove valores dos vinte e cinco, contando os lados.
+    Nenhuma delas alimenta qualquer um dos seis eixos hoje, o que torna seguro
+    mante-las entre check-ins. Isso deixa de ser verdade se o modo de referencia
+    externa da Fase 3 passar a ancorar eixo em punho ou tornozelo, e nesse dia a
+    regra precisa ser reexaminada. Anotado aqui porque e o tipo de premissa que
+    ninguem lembra de rever.
+
+  A ordem dos passos vem de measurement_keys.display_order, e nao de uma lista no
+  codigo.
+    O caminho da fita pelo corpo e decisao de produto e vai ser ajustado depois de
+    ver alguem medindo. Mudar isso tem que ser mudanca de dado.
+
+  O gate do nome tem allowlist fechada, e ela verifica a si mesma.
+    O nome antigo precisa aparecer no registro historico; um gate que reprova o
+    proprio registro e desligado na terceira falha falsa. E allowlist que acumula
+    entrada morta vira grande demais para alguem ler, entao entrada apontando
+    para arquivo inexistente tambem reprova.
+
+
+DEFEITOS ENCONTRADOS
+
+  O seed quebrou ao aplicar a migration de classificacao.
+    Remover o default de measurement_keys.kind e correto — chave nova tem que
+    declarar o que e — mas o seed nao informava a coluna, e a carga passou a
+    falhar com violacao de not null. Corrigido classificando as dezessete chaves
+    no proprio seed. O default temporario da migration continua necessario para o
+    caso em que o seed ja foi aplicado antes dela; num banco vazio ele e inocuo.
+
+  Referencia obsoleta no SECURITY.md.
+    O documento ainda apontava o shim de teste para supabase/tests/, de onde ele
+    saiu no ciclo anterior. Corrigido para scripts/sql/bootstrap-local.sql.
+
+
+DISCORDANCIAS
+
+  Nao escrevi as telas, e isso contraria o item 4 da lista deste ciclo.
+    Duas instrucoes minhas colidem. A lista manda construir a Abordagem A. A
+    secao 5 do AGENTS.md diz que qualquer decisao visual — layout, cor,
+    tipografia, movimento — e qualquer copy que o usuario le sao gate humano,
+    sempre, e que o julgamento de produto continua sendo meu.
+    Escolhi a segunda, e construi tudo que a tela precisa sem tomar decisao
+    visual: ordem dos passos, pre-preenchimento, carimbo, o que bloqueia baseline.
+    A proposta visual vai junto deste relatorio, para decisao. Se eu tivesse
+    construido, o gate teria sido atravessado exatamente no lugar onde ele foi
+    escrito para valer — a tela e o produto, e a Abordagem A e o ato repetido.
+
+  A regra do baseline concentra o atrito no pior momento possivel.
+    Redefinir baseline exige digitar todas as variaveis: e a sessao mais longa
+    que o app produz, e ela cai justamente quando a pessoa esta motivada, no
+    inicio de um ciclo novo. A regra esta certa e nao proponho afroxa-la. O que
+    me incomoda e a consequencia de segunda ordem: se redefinir baseline for
+    caro, a tendencia e nao redefinir, e a pessoa segue comparando contra um
+    baseline velho que ja nao descreve o corpo dela. Isso e pior para a honestidade
+    do produto que o atrito que a regra evita.
+    Nao tenho a solucao pronta, e ela e de produto, nao de engenharia. As saidas
+    que enxergo: tratar a redefinicao como um momento anunciado, com a sessao
+    completa apresentada como o que ela e; ou permitir baseline parcial, com os
+    eixos sem medida digitada ficando indisponiveis ate serem medidos, o que
+    preserva a integridade sem exigir a sessao inteira de uma vez. A segunda me
+    parece melhor e e mudanca de regra, entao nao a implementei.
+
+  O gate do nome torna impossivel escrever este relatorio nomeando o nome
+  anterior.
+    A allowlist e por arquivo e e fechada. Este relatorio nao esta nela, entao ele
+    fala em "nome antigo" e aponta para a ADR 0006. Funciona, mas e uma
+    estranheza: o documento cujo principal item e a renomeacao nao pode nomear o
+    que foi renomeado. As opcoes sao aceitar a perifrase, ou incluir cada
+    relatorio novo na allowlist, que dissolve a disciplina da lista fechada.
+    Aceitei a perifrase, e registro que a escolhi.
+
+  Sobre os 100% de cobertura, mantenho o que disse no ciclo passado e reforco com
+  numero: sao 135 declaracoes, e a maior parte delas e a sessao guiada e a
+  conversao de unidade. Nada de RLS, nada de proporcao, nada de mecanica. O
+  numero e verdadeiro e estreito, e o README agora diz isso.
+
+
+EM ABERTO
+
+  Cadencia de remedicao das estruturais. buildSessionPlan recebe
+  structuralRemeasureAfterDays e nao tem valor padrao, de proposito: e numero de
+  produto e nao ha nada no dominio que o justifique. Os testes usam 180 dias como
+  valor arbitrario. Preciso do numero que vale.
+
+  Baseline parcial, descrito em DISCORDANCIAS. Preciso saber se abro essa
+  possibilidade antes de desenhar o fluxo de redefinicao.
+
+  Renomear o repositorio no GitHub. Nao ha ferramenta de API disponivel aqui para
+  isso; e Settings, General, Rename. O remote local segue apontando para a URL
+  antiga, que o GitHub redireciona, e so deve ser trocado depois da renomeacao.
+
+  Nome de exibicao do projeto no Supabase, que e acao de console.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente de conferencia contra o exemplar.
+
+
+BLOQUEADO EM MIM
+
+  Proposta visual da Abordagem A, apresentada junto deste relatorio. Palette,
+  tipografia, sistema de espacamento, movimento e a copy dos passos. Nada de tela
+  sera escrito antes da escolha.
+
+  Private Vulnerability Reporting: confirmacao de que foi ligado.

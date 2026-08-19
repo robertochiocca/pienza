@@ -1,0 +1,246 @@
+PIENZA — RELATORIO 0003
+Fase: 1   Ciclo: 4   Data: 2026-08-16
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na
+cadencia que escolher, e ve a propria mudanca comparada com ela mesma. Este ciclo
+fixa a identidade visual em tokens com gate, fecha as travas de escrita do banco,
+abre o baseline parcial, e reverte para exibir a diferenca entre lados. As telas
+seguem sem ser escritas, e o motivo esta em BLOQUEADO EM MIM.
+
+
+FEITO
+
+  packages/tokens — pacote novo, fonte unica de cor, zero dependencias.
+      src/palettes.json com Bandeira (light) e Noturno (dark). Cada token declara
+        o papel que exerce, e o papel define o limiar de contraste cobrado.
+
+  scripts/gate-cores.mjs — gate novo. Tres regras, todas reprovando o build:
+      contraste recalculado a cada execucao, no limiar do papel declarado
+      um unico matiz cromatico no conjunto, e recusa nominal da faixa verde
+      nenhum literal de cor fora do arquivo de tokens
+
+  supabase/migrations/20260816140000_travas_de_escrita.sql
+      SECURITY DEFINER nas duas funcoes de invalidacao, com search_path vazio
+      privilegio por coluna: measurement_values so aceita UPDATE de value
+      baselines so aceita UPDATE de effective_to
+      age_verification_events: o cliente so pode inserir method self_declared
+
+  supabase/migrations/20260816150000_baseline_parcial_e_contexto.sql
+      remove o gatilho que recusava baseline sobre medida mantida
+      status baseline_not_typed em proportion_ratios
+      eixo com status ok passa a exigir reference_provenance = 'typed'
+      checkins ganha training_state e taken_at_utc_offset_minutes, opcionais
+
+  supabase/tests/040_travas_de_escrita.sql — arquivo novo, 12 assercoes.
+  supabase/tests/030_proveniencia.sql — reescrito para o baseline parcial.
+
+  scripts/gate-segredos.mjs — gate novo, com varredura de historico separada.
+
+  packages/domain/src/session — baseline parcial: o pre-preenchimento volta a
+    valer em check-in de baseline, e cada passo carrega keptLeavesAxisPending.
+    variablesBlockingBaseline passa a se chamar variablesKeptAtBaseline, porque
+    nao bloqueia mais nada: adia.
+
+  scripts/gate-mecanicas-proibidas.mjs — item 11 estreitado para indice e score.
+
+  docs/decisoes/0010-paletas-bandeira-e-noturno.md — nova.
+  docs/decisoes/0011-travas-de-escrita-e-baseline-parcial.md — nova.
+  docs/decisoes/0005-medida-bilateral-e-assimetria.md — revisada.
+  docs/decisoes/0002-mecanicas-proibidas.md — item 11 com escopo novo.
+  docs/decisoes/0007-proveniencia-de-medida.md — nota apontando para a 0011.
+
+  SECURITY.md — secao nova com os itens que dependem do app existir, listados
+    como pendentes e com dono, em vez de omitidos.
+  AGENTS.md — seis decisoes novas na secao 2.
+  .github/workflows/ci.yml — quatro passos de gate novos e o job de varredura de
+    segredo no historico, com fetch-depth 0.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 31 testes
+  cobertura de packages/domain             100%, piso em 100
+  gate de mecanicas proibidas              verde, 30 casos de auto-teste
+  gate de nome antigo                      verde, 11 casos de auto-teste
+  gate de cores                            verde, 15 tokens e 2 pares,
+                                           1 matiz cromatico
+  gate de segredos                         verde, 10 casos de auto-teste
+  varredura de segredo no historico        verde, 10 commits, nada
+  gate de dominio puro                     verde, zero dependencias
+  auditoria de dependencia                 verde, 0 vulnerabilidades
+  suite de banco, modo shim                verde, 61 assercoes
+                                           (24 isolamento, 14 travas de dominio,
+                                           11 proveniencia, 12 travas de escrita)
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+
+  Os treze valores de contraste declarados foram recalculados antes de virarem
+  token. Os treze conferem exatamente.
+
+  Cada regra do gate de cores foi verificada com o conjunto mutilado de proposito:
+  um token verde e recusado por duas regras ao mesmo tempo; um azul e recusado
+  pela contagem de matiz; o texto do botao do dark trocado para branco cai para
+  3.87 e reprova; um literal de cor plantado num arquivo do dominio e apontado
+  com linha.
+
+
+DECIDIDO
+
+  O matiz unico e a protecao, e ele e contado por maquina.
+    A paleta anterior protegia a proibicao de semaforo por construcao: havia um
+    acento so e ele ja tinha dono. A paleta nova recupera a mesma protecao por
+    outro caminho — um matiz no conjunto inteiro, entao nao existe segunda cor
+    com que montar o par. Isso so vale enquanto for verdade, e verdade sobre cor
+    envelhece a cada ajuste de gosto. Por isso e contagem no build e nao
+    principio em documento.
+    A faixa verde e recusada nominalmente alem da contagem, porque um unico verde
+    reconstroi o par sozinho: quem olha completa.
+
+  O texto do botao do dark e quase-preto, e o motivo esta no proprio token.
+    Branco sobre o vermelho do dark da 3.87 e reprova. A inversao em relacao ao
+    light parece estranha, e coisa que parece estranha e corrigida por alguem
+    seis meses depois. O gate reprova a correcao, e o token explica por que.
+
+  Proveniencia e imutavel; valor nao e.
+    Corrigir um numero e legitimo. Reescrever como ele entrou nao, porque ninguem
+    mede retroativamente — e se pudesse, bastaria gravar tudo mantido e promover
+    em seguida. Privilegio por coluna, e nao gatilho: a negativa vem antes de
+    qualquer logica poder ser contornada.
+
+  O limite disso esta escrito, e nao maquiado.
+    Forjar proveniencia no insert nao e impedivel pelo banco, porque o banco nao
+    tem conhecimento independente de que um humano digitou. Um cliente adulterado
+    grava typed em tudo. O que estas travas fecham e o que importa: nao ha caminho
+    entre contas, e nao ha mutacao depois do fato. Quem forja no insert forja
+    contra o proprio historico. Chamar isso de vulnerabilidade no mesmo tom de um
+    vazamento entre contas confunde a prioridade de quem for triar depois.
+
+  A protecao do baseline mudou de lugar em vez de afrouxar.
+    O gatilho que recusava saiu; a restricao que exige reference_provenance
+    digitado entrou. O eixo com denominador nao aferido nao existe — ele espera,
+    com motivo proprio no status. O numerador pode ser mantido, e ai significa "a
+    pessoa nao remediu este eixo", que e informacao verdadeira e nao ausencia.
+
+  A diferenca entre lados passa a aparecer.
+    A versao anterior da ADR 0005 decidia pela pessoa o que ela pode saber sobre o
+    proprio corpo. O argumento do erro de fita justifica nao calcular um indice —
+    porque indice precisa de limiar, e o limiar teria que separar assimetria real
+    de erro de afericao, numero que eu teria que inventar. Ele nao justifica
+    esconder a subtracao.
+    O gate acompanhou: a regra deixou de ser a palavra e virou proximidade entre
+    "assimetria" e indice, score, ratio ou nota.
+
+  Contexto de medicao entrou junto, e nao depois.
+    Se a diferenca entre lados vai para a tela, o metodo passa a pesar mais que
+    antes. training_state e o deslocamento de fuso sao opcionais, nao entram em
+    calculo e nao bloqueiam nada. O deslocamento existe porque timestamptz perde a
+    hora local que a pessoa de fato viveu, e "mediu as sete da manha" e metade do
+    contexto.
+
+
+DEFEITOS ENCONTRADOS
+
+  O app nao conseguia corrigir uma medida. Este e o achado do ciclo.
+    As duas funcoes de invalidacao apagam de proportion_ratios, onde authenticated
+    so tem SELECT, e rodavam com os privilegios de quem invoca. Qualquer UPDATE ou
+    DELETE de medida feito pelo cliente falhava com permission denied. Nao e caso
+    de borda: e o caminho de corrigir um numero digitado errado, que acontece na
+    primeira semana de uso.
+    A suite nao pegava porque as assercoes de invalidacao rodavam como
+    superusuario. Teste que roda com privilegio a mais que o codigo real prova
+    menos do que parece provar — o mesmo erro de metodo que FORCE ROW LEVEL
+    SECURITY existe para evitar.
+    Corrigido com SECURITY DEFINER e search_path vazio, e agora ha assercao que
+    varre pg_proc e reprova qualquer funcao definer sem search_path fixado.
+
+  Reabrir um baseline antigo escapava do gatilho.
+    O gatilho de proveniencia rodava so em INSERT. Como authenticated tinha UPDATE
+    na tabela inteira, dava para fechar o baseline vigente e reabrir um antigo por
+    UPDATE, trocando o denominador de toda a serie sem passar por validacao. O
+    privilegio por coluna fecha isso; o gatilho em si saiu com o baseline parcial.
+
+  O gate de segredos nasceu com a mesma falha que o de mecanicas ja teve.
+    /\\bservice[_-]?role\\b/ nao casa SUPABASE_SERVICE_ROLE_KEY, porque `_` conta
+    como caractere de palavra e nao ha fronteira ali. Desta vez o auto-teste pegou
+    na primeira execucao, antes de o gate ir para o CI — que e exatamente o efeito
+    que o auto-teste existe para produzir.
+
+  A varredura de historico acusou tres falsos positivos.
+    Todos eram o nome do papel em concessao SQL legitima, e nao chave. O patch nao
+    carrega caminho em cada linha, entao a varredura aplicava a padroes de codigo
+    de cliente linhas que eram de SQL. Corrigido rastreando o arquivo pelo
+    cabecalho do diff, para valer a mesma regra de diretorio da varredura do
+    working tree. Falso positivo em gate de seguranca e o que faz alguem desligar
+    o gate.
+
+  Meu segredo falso continha "Xp".
+    A fixture sb_secret_...LmXp... foi acusada pelo gate de mecanicas como XP de
+    gamificacao, depois da normalizacao de camelCase. Sao dois gates funcionando
+    corretamente e se atropelando. Troquei a string.
+
+
+DISCORDANCIAS
+
+  "Enquanto isso nao existir, o gatilho de baseline e uma trava numa porta com a
+  janela aberta" — concordo com a metade, e a outra metade importa.
+    A janela existia e esta fechada: reescrever proveniencia depois do fato era
+    possivel, e reabrir baseline antigo por UPDATE tambem. Mas a janela nao fecha
+    inteira, e nenhuma trava fecharia: o insert forjado nao tem como ser
+    verificado, porque nao existe testemunha do lado do servidor de que alguem
+    digitou.
+    O que me incomoda na formulacao e a mistura de modelos de ameaca. Vazamento
+    entre contas e um estranho lendo o corpo de outra pessoa. Proveniencia forjada
+    e a propria pessoa mentindo para o proprio historico. Os dois sao integridade,
+    mas so o primeiro tem vitima que nao consentiu. Listar os dois juntos, sem
+    distinguir, faz o segundo consumir atencao que o primeiro merece — e foi o
+    primeiro que produziu, neste ciclo, um bug real de producao.
+
+  A ordem do ciclo colocou seguranca antes de tela, e isso estava certo por um
+  motivo diferente do declarado.
+    A justificativa era proteger a trava de proveniencia. O que a ordem de fato
+    produziu foi encontrar o bug de invalidacao — que nao tem nada a ver com
+    adulteracao, e que teria aparecido na primeira vez que alguem tentasse
+    corrigir um numero na tela. Se as telas tivessem vindo antes, o bug teria sido
+    diagnosticado como erro de cliente, no lugar errado.
+
+  Sobre "nao parecer feito as pressas": a lista de coisas a evitar e boa e eu
+  concordo com ela, mas ela e uma lista de negativas. Uma tela sem degrade, sem
+  sombra e sem brilho nao e automaticamente boa — ela e so nao-ruim. O que vai
+  decidir e a unica coisa afirmativa da lista, o layout assimetrico, e essa e a
+  parte que nenhum gate cobre e que so se avalia vendo. Registro para nao me
+  apoiar na ausencia de defeito como se fosse presenca de qualidade.
+
+  Sobre 3D no card de compartilhamento: concordo que e onde paga, e nao
+  implementei nada. Registro so um cuidado para quando chegar — um card em
+  perspectiva tem o mesmo defeito que voce apontou no hexagono, o de distorcer
+  area. Se o card mostrar o poligono, ele nao pode ser o mesmo poligono em
+  perspectiva; tem que ser outra coisa, ou o mesmo grafico em 2D com tratamento
+  caro em volta.
+
+
+EM ABERTO
+
+  A janela padrao de comparacao do hexagono. Ficou decidido que nao e "check-in
+  anterior", e sim um intervalo em que a mudanca seja plausivel. O numero nao foi
+  definido, e ele e de produto. Ate ele existir, nao da para escrever a tela de
+  comparacao.
+
+  Nomenclatura de proveniencia em ingles ('typed'/'kept') segue como escolha
+  minha, reversivel por alter type.
+
+  Renomear o repositorio no GitHub, nome de exibicao no Supabase e Private
+  Vulnerability Reporting seguem como acao de console.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  Abordagem A nas paletas decididas. E o item 6 da ordem deste ciclo, e ele nao
+  foi alcancado: os cinco anteriores consumiram o ciclo, e o sexto e gate humano
+  de qualquer forma. O que existe pronto para ele: os tokens com gate, o modelo de
+  sessao no dominio, e o comportamento de baseline parcial. O que falta decidir
+  antes de eu escrever tela e a janela de comparacao, acima.

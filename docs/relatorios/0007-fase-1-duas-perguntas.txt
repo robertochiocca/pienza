@@ -1,0 +1,201 @@
+PIENZA — RELATORIO 0007
+Fase: 1   Ciclo: 8   Data: 2026-08-19
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na cadencia
+que escolher, e ve a propria mudanca comparada com ela mesma. Este ciclo nao mexe em
+desenho: troca o peso entre dois achados, tira quatro numeros de produto de dentro do
+codigo, e separa por escrito duas perguntas que estavam sendo tratadas como uma.
+
+
+FEITO
+
+  docs/decisoes/0013-ordem-dos-eixos.md — reescrita.
+      Amplificacao como achado principal, com a formula da elasticidade e a tabela dos
+      dois parametros. Ordenacao como secundario, com o motivo do rebaixamento escrito:
+      ordenacao tem confundidor, amplificacao nao tem.
+      As duas perguntas separadas, cada uma com dono nomeado.
+
+  supabase/migrations/20260819090000_escala_do_hexagono.sql
+      As quatro constantes em product_settings: as duas bordas da faixa, o raio minimo e
+      o limiar de estabilidade. Valores inalterados. Cada uma com natureza, motivo e o
+      que o motivo nao afirma.
+
+  packages/domain/src/hexagon/plot.ts — EscalaRadial.
+      Os tres numeros da escala viajam como objeto unico, sem valor padrao, pelo mesmo
+      motivo de limiarEstavel. RAIO_MINIMO deixa de ser constante de modulo.
+
+  packages/domain/test/hexagon.test.ts — a amplificacao vira fato verificado.
+      Duas assercoes novas: a elasticidade em vigor e exatamente 4 no raio e 8 na area,
+      e os dois parametros puxam em sentidos opostos. Mexer na escala sem querer mexer
+      na amplificacao quebra ali. 75 testes.
+
+  supabase/tests/020 — tres assercoes novas, 19 no arquivo, 66 na suite.
+      As quatro chaves existem, nenhuma se apresenta como clinica, e a faixa e simetrica
+      em torno de 1. As duas primeiras verificadas reprovando.
+
+  AGENTS.md 1.3.2 — a regra do negativo verificado.
+      Nenhum gate entra sem ter sido visto reprovando o defeito que existe para pegar, e
+      a verificacao vai registrada junto. Entra tambem na lista do gate automatico.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 75 testes
+  cobertura de packages/domain             100%, piso em 100, 274 declaracoes
+  gate de mecanicas proibidas              verde, 30 casos de auto-teste
+  gate de nome antigo                      verde, 11 casos
+  gate de cores                            verde, 15 tokens, 1 matiz
+  gate de segredos                         verde, 10 casos
+  gate de papel da suite                   verde, 8 casos, 4 arquivos
+  gate de dominio puro                     verde
+  gate de prazos                           verde, 10 casos, 1 divida no prazo
+  gate de auditoria                        verde, 9 casos, 2 advisories aceitos
+  gate de quadro do harness                verde, 9 casos, 19 capturas
+  suite de banco, modo shim                verde, 66 assercoes
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+  protecao de branch                       nao existe: acao de console pendente
+
+
+DECIDIDO
+
+  A escala radial e uma decisao so, e por isso os tres numeros viajam juntos.
+    Nao sao tres ajustes independentes: juntos eles definem o fator de amplificacao, e
+    eles puxam em sentidos opostos. Mexer em um sem os outros muda o fator sem que
+    ninguem tenha decidido muda-lo. No dominio isso e um objeto sem valor padrao; no
+    banco sao quatro linhas com o aviso de que nao devem ser mexidas separadamente.
+
+  O limiar de estabilidade entrou junto, e isso e escopo que eu acrescentei.
+    Voce pediu as duas constantes de razaoParaRaio. Levei quatro linhas: as tres da
+    escala mais o limiarEstavel. Ele ja nao era constante de codigo — era parametro
+    obrigatorio escolhido no ponto de chamada — mas e da mesma classe: numero de produto
+    sem medicao que governa o que a pessoa le. Deixar um irmao como literal no chamador
+    enquanto os outros tres vao para o banco cria justamente a duvida de onde procurar.
+    Se a linha estiver no lugar errado, sai numa migration de uma linha.
+
+  A pergunta 1 e a pergunta 2 tem donos diferentes e isso esta escrito na ADR.
+    Leitura e do campo; proposito e seu. Escritas em blocos separados, com a frase de
+    que resultado bom na primeira nao fecha a segunda. Sua posicao sobre a gestalt esta
+    registrada com a data de antes do campo, como voce pediu.
+
+
+DEFEITOS ENCONTRADOS
+
+  Eu escrevi a direcao do raio minimo errada, e o teste que eu estava escrevendo pegou.
+    Afirmei, no comentario do proprio parametro, que raio minimo maior amplifica mais.
+    E o contrario: com raio de partida maior, a mesma variacao absoluta vira variacao
+    relativa menor. Com a faixa em vigor, raio minimo 0,25 da elasticidade 4; em 0,5 da
+    2,22; em zero daria 6,67.
+    Escrevi a assercao esperando confirmar o que eu tinha acabado de escrever, e ela deu
+    vermelho. Isso e a 1.3.2 funcionando um dia depois de eu escrever a 1.3.2, e num
+    caso em que o defeito era meu e nao do gate.
+
+  E dai sai um fato que muda a leitura do achado principal.
+    O raio minimo entrou no codigo por motivo geometrico — sem ele um vertice no minimo
+    da faixa cai no centro e o poligono colapsa — e e hoje o numero que mais segura o
+    exagero. Sem ele o grafico amplificaria 6,67 em vez de 4.
+    Ou seja: a unica coisa que estava contendo o problema estava la por outro motivo, e
+    por acidente. Se em algum ciclo alguem tivesse "limpado" o raio minimo achando que
+    era enfeite, a amplificacao teria subido 67% sem nada quebrar. Esta escrito na ADR e
+    no motivo da linha do banco.
+
+  Nao encontrei mais nada. Ciclo de texto e de migracao, com pouca superficie nova.
+
+
+SOBRE AS SUAS CORRECOES
+
+  As tres estao aceitas e aplicadas.
+
+  O "8 vezes" estava frouxo e voce tem razao no diagnostico.
+    razaoParaRaio amplifica 4; a area amplifica 8 porque a area vai com o quadrado do
+    raio. Eu tinha pendurado na funcao um fator que e metade dela e metade da geometria
+    do poligono. Corrigido na ADR com os dois numeros separados, e mais uma linha
+    dizendo por que quem ler daqui a um ano precisa dos dois.
+    Um detalhe que a correcao expoe: 8 e o valor no limite. Num passo finito de 2% a
+    area se move 8,32 vezes, por causa do termo de segunda ordem. Os dois numeros estao
+    na ADR e no teste, porque so o 8 faria alguem reconferir a conta e achar que errou.
+
+  O seu conjunto desproporcional saturava e o meu tambem, so que menos.
+    Voce diagnosticou o seu. O meu — 0,87 a 1,14 — encosta na borda de 1,15 sem passar,
+    entao os 20,1% estao dentro da faixa util e valem. Refiz para confirmar antes de
+    deixar o numero na ADR.
+
+
+DISCORDANCIAS
+
+  A ADR agora diz que amplificar nao e defeito, e eu quero isso explicito porque a
+  reescrita corre o risco de ser lida como "o grafico esta errado".
+    Grade que nao amplifica nao mostra nada: uma faixa de 0 a 2 com raio minimo zero
+    tornaria toda mudanca real invisivel. O problema nunca foi haver fator; foi o fator
+    ser herdado em vez de escolhido, e ninguem saber que numero era. Depois desta
+    migracao o fator continua 4 e agora esta escrito.
+    Registro porque o proximo passo tentador e "baixar a amplificacao", e baixar sem
+    critério troca um numero arbitrario por outro. O criterio so pode vir de decidir o
+    que a escala deve mostrar — e essa pergunta e prima da pergunta 2, nao da 1.
+
+  A pergunta 2 pode ficar sem resposta por tempo indefinido, e isso tem custo composto.
+    Ela nao tem prazo, nao tem gate, e nao tem evento que a force — ao contrario da
+    divida do react-native, que agora vence em data. Enquanto ela estiver aberta, todo
+    trabalho no hexagono e trabalho que pode ser jogado fora, e o custo de joga-lo fora
+    cresce a cada ciclo em que ele fica mais certo. Isso e literalmente o que voce
+    escreveu no ciclo 6 sobre a tela.
+    Nao proponho decidir antes do campo. Proponho que ela ganhe prazo depois do campo, e
+    que o prazo entre em scripts/prazos.json como qualquer outra divida — a condicao de
+    saida sendo uma ADR escrita, e nao um numero. O gate ja aceita isso; so precisa de
+    uma condicao nova.
+
+  Sobre o card de compartilhamento: concordo que nao deve herdar o hexagono, e acho que
+  a ordem de decidir esta invertida.
+    Voce escreveu que o card e problema separado e nao se resolve por heranca. Concordo.
+    Mas se a saida C ganhar, o card e a unica coisa que ainda quer uma forma unica e
+    reconhecivel, e ai ele deixa de ser consequencia e vira o unico lugar onde a
+    pergunta "que forma representa esta pessoa?" precisa de resposta.
+    Decidir o card antes da pergunta 2 daria a ela uma resposta de fato: se o card for
+    um hexagono, o app tem um hexagono. Decidir depois deixa o card sem restricao. Acho
+    que e depois, mas registro que a ordem importa e que ela nao esta escrita em lugar
+    nenhum.
+
+  Sobre eu ter levado o limiarEstavel junto: fiz e estou avisando, nao pedindo.
+    Esta na secao DECIDIDO com o motivo. Se voce discordar e uma migration de uma linha,
+    e o custo de eu ter feito e menor que o de ter deixado dois lugares para procurar o
+    mesmo tipo de numero. Mas foi decisao minha sobre um pedido seu que dizia "as duas
+    constantes", e voce merece ver isso marcado em vez de descobrir na migration.
+
+
+EM ABERTO
+
+  O teste de campo. Protocolo de tres fases fechado. hexagono.html inalterado desde o
+  ciclo 7 — nenhuma mudanca de desenho neste ciclo, por instrucao.
+
+  Pergunta 1: leitura. Espera as quinze frases.
+
+  Pergunta 2: proposito. Sem prazo. Ver discordancia.
+
+  Os valores da escala. Em product_settings, inalterados, esperando as duas perguntas.
+
+  A duplicacao dos quatro numeros entre o banco e o harness. O harness nao tem banco; a
+  saida real e o app buscar os valores. Declarada no proprio arquivo.
+
+  Ligar a protecao de main no console. A ADR 0012 segue descrevendo regra que nao
+  existe aplicada.
+
+  Traco de campo vazio removido sem verificacao em aparelho — pendente de Expo.
+
+  Fontes: familias genericas ate voce decidir, com prioridade OFL na busca.
+
+  Expo ate 2026-09-01, com gate. Faltam treze dias.
+
+  Supabase: nome de exibicao e Private Vulnerability Reporting seguem como console.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  Nada. Os cinco itens da sua ordem estao fechados.
+
+  Espera voce, sem bloquear: se o limiarEstavel devia ter vindo junto; e se a pergunta 2
+  ganha prazo depois do campo.

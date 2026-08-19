@@ -1,0 +1,289 @@
+PIENZA — RELATORIO 0005
+Fase: 1   Ciclo: 6   Data: 2026-08-18
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na cadencia
+que escolher, e ve a propria mudanca comparada com ela mesma. Neste ciclo a tela
+deixou de ser maquete e passou a rodar: componentes React Native de verdade,
+empacotados para o navegador, num quadro com metrica de aparelho e teclado com altura
+real. Foi assim que os defeitos abaixo apareceram.
+
+
+FEITO
+
+  apps/mobile/src/screens/MeasurementEntry.tsx — a tela de entrada, em codigo.
+      React Native de verdade: View, Text, TextInput, Pressable, StyleSheet. Sem botao
+      primario. Tecla de retorno e acao de texto "confirmar" no rodape existem desde a
+      primeira versao, no mesmo peso de "pular", e nao como correcao depois de o
+      Android decepcionar.
+
+  apps/mobile/src/screens/MeasurementReview.tsx — o fecho da sessao.
+      Mostra o que vai ser gravado. Medida bilateral com os dois lados e a diferenca
+      crua, sem adjetivo, sem faixa de normalidade e sem limiar embutido. Estrutural
+      que atravessou sem virar passo aparece marcada como mantida, porque ela vai ser
+      gravada e a tela que diz o que vai ser gravado precisa dize-lo inteiro.
+
+  apps/mobile/web/ — o harness.
+      Quadro com largura, altura, faixa de sistema e altura de teclado de tres
+      aparelhos. Duas paletas alternaveis em tempo de execucao. Os dois
+      comportamentos de teclado: `encolhe`, que e o Android com adjustResize, e
+      `cobre`, que e o iOS. Os controles ficam fora do quadro; dentro do quadro so
+      entra o que vai existir no aparelho.
+
+  apps/mobile/scripts/build-web.mjs, serve-web.mjs, capturar.mjs
+      esbuild troca `react-native` por `react-native-web` no empacotamento, entao o
+      codigo da tela importa o que vai importar no aparelho. As capturas sao script e
+      nao sessao manual de navegador: a pergunta "a tela ainda sobrevive ao teclado?"
+      volta todo ciclo, e captura tirada a mao responde uma vez.
+
+  apps/mobile/dist/hexagono.html — pagina de teste de campo, arquivo unico.
+      200 KB, sem servidor, abre offline. Dois conjuntos alternaveis e as duas
+      paletas. Sem legenda, de proposito: a regra e preenchido para fora, vazado para
+      dentro, mesma cor nos dois, e o que se quer saber e se alguem le isso sem que
+      ninguem conte.
+
+  packages/domain/src/hexagon — geometria do hexagono.
+      Razao vira raio, desvio vira direcao carimbada, eixo sem dado sai da lista de
+      vertices e guarda o proprio angulo. `limiarEstavel` e parametro obrigatorio sem
+      valor padrao: e numero de produto e ninguem mediu quanto de variacao e ruido de
+      fita. Vinte e duas assercoes, incluindo tres de propriedade.
+
+  scripts/gate-auditoria.mjs, scripts/auditoria-aceita.json — gate novo.
+      Substitui `npm audit --audit-level=low`. O limiar continua em qualquer coisa
+      reprova; o que muda e a saida quando um advisory nao tem correcao publicada.
+      Ela e nominal: pacote, caminho, data e motivo escritos. Entrada que nao casa mais
+      com nenhum advisory tambem reprova, e critical nao entra por lista. Nove casos de
+      auto-teste.
+
+  supabase/migrations/20260818140000_motivos_honestos.sql
+      Os textos do 28 e do 180, reescritos. Nenhum dos dois numeros muda.
+
+  docs/decisoes/0012-protecao-de-branch.md, AGENTS.md 1.3.1
+      A protecao de main como regra escrita. A unica deste arquivo cuja aplicacao mora
+      fora do repositorio.
+
+  docs/capturas/0005/ — dezessete capturas, doze delas com o teclado aberto.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 63 testes
+  cobertura de packages/domain             100%, piso em 100, 263 declaracoes
+  gate de mecanicas proibidas              verde, 30 casos de auto-teste
+  gate de nome antigo                      verde, 11 casos
+  gate de cores                            verde, 15 tokens, 1 matiz
+  gate de segredos                         verde, 10 casos
+  gate de papel da suite                   verde, 8 casos, 4 arquivos
+  gate de dominio puro                     verde
+  gate de auditoria                        verde, 9 casos, 2 advisories aceitos
+  suite de banco, modo shim                verde, 61 assercoes
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+  protecao de branch                       nao existe: acao de console pendente
+
+
+DECIDIDO
+
+  Os tipos vem do react-native, e a implementacao vem do react-native-web.
+    Sao coisas separadas e estavam misturadas. O tsconfig aponta `react-native` para
+    os tipos do proprio React Native — a API que as telas vao encontrar no aparelho —
+    e quem troca a implementacao e o esbuild, na hora de empacotar. Apontar os tipos
+    para o react-native-web checaria as telas contra a plataforma errada, e o erro so
+    apareceria no Expo.
+    O custo disso e o react-native instalado como devDependency, e com ele sete
+    advisories do image-size dentro do Metro. Ver a decisao seguinte.
+
+  Advisory sem correcao entra por nome, e nao baixando o limiar.
+    Nao existe versao corrigida de image-size: o advisory cobre todas. A correcao que o
+    npm oferece e voltar o react-native uma major inteira para tras. Subir o
+    `--audit-level` resolveria, e desligaria o gate para todos os outros advisories,
+    inclusive os que ainda nao existem — e um gate que so pode ser satisfeito nao
+    usando React Native e um gate que vai ser desligado quando o Expo chegar.
+    Entao a lista: cada advisory com pacote, caminho, data e motivo escrito. E a regra
+    que impede a lista de virar permissao permanente: entrada que nao casa mais reprova
+    o build. Quando image-size publicar correcao, o build fica vermelho ate alguem
+    apagar duas linhas. Isso e de proposito.
+
+  O eixo sem medida nao e atravessado por aresta nenhuma.
+    Com dois eixos indisponiveis, o poligono fechado ligava os vizinhos deles em linha
+    reta — e essa reta cruza o eixo que falta num raio determinado, que e um valor que
+    ninguem mediu. E a mesma interpolacao que o modulo de comparacao recusa ao escolher
+    alvo. Agora o traco quebra: corridas de vizinhos com dado viram polilinhas abertas,
+    e so ha preenchimento quando os seis eixos existem.
+
+  O rodape sobe o tanto que o teclado cobre, com um numero e nao um ramo por
+  plataforma.
+    A tela recebe `alturaCobertaPorTeclado`. No Android com adjustResize vale 0, porque
+    a janela ja encolheu; no iOS vale a altura do teclado. Quem sabe qual e o caso e o
+    hook que escuta o teclado, e nao o layout.
+
+  As capturas sao script versionado.
+    Elas voltam a ser tiradas do mesmo jeito no proximo ciclo, com o mesmo roteiro de
+    digitacao, e da para comparar. Capturas tiradas a mao viram lembranca.
+
+
+DEFEITOS ENCONTRADOS
+
+  Todos os seis abaixo apareceram por a tela rodar. Nenhum deles era visivel na
+  maquete, e quatro deles a maquete escondia por construcao.
+
+  No iOS, o rodape inteiro ficava embaixo do teclado.
+    Voltar, pular e confirmar sao as tres unicas acoes da tela, e as tres estavam fora
+    do campo de visao no estado em que a tela quase sempre e vista. No Android, onde a
+    janela encolhe, as tres apareciam. Eu tinha registrado no ciclo passado que a
+    ausencia de botao dependia da tecla de retorno e que isso era risco de plataforma;
+    o que eu nao tinha visto e que no iOS a saida alternativa que eu mesmo tinha
+    escrito tambem estava indisponivel. A tela nao tinha caminho garantido em nenhuma
+    das duas plataformas.
+
+  A paleta Noturno quebrava a tela.
+    Ela nao tem o token `action`, porque nela o `brand` ja passa o limiar de texto sobre
+    o fundo preto e um segundo vermelho seria matiz nova sem funcao. A tela pedia
+    `action` direto e lancava excecao ao trocar de paleta. Corrigido com um papel —
+    `corDeAcao` — em vez de um token: a tela pede a funcao, e quem sabe qual token
+    exerce aquela funcao em cada paleta e a camada de tema.
+    Isto so aparece com as duas paletas rodando na mesma sessao, que e o argumento
+    inteiro do alternador em tempo de execucao.
+
+  Na revisao, toda medida aparecia com lado esquerdo e lado direito.
+    Eu tinha deduzido "e bilateral" de "o valor unico e nulo". Da a resposta certa
+    enquanto ninguem pula nada: cintura pulada tambem tem valor unico nulo, e a tela
+    mostrava cintura esquerda e cintura direita. Ausencia de dado nao diz que forma o
+    dado teria. Agora `bilateral` vem do vocabulario, que e onde a informacao mora.
+
+  A tela inteira media 1410 pontos de largura dentro de um quadro de 390.
+    O `<input>` com fonte de 105 pontos tem largura intrinseca de 1293 pontos, e nada
+    limitava a caixa. O quadro recortava, entao o que aparecia era uma tela plausivel
+    com metade do conteudo fora. Isto e artefato do harness e nao do aparelho — e o
+    tipo de erro que faz uma captura mentir com cara de captura.
+
+  Na revisao, o valor de medida sem lado encostava na borda esquerda da tela, e a
+  unidade aparecia embaixo de lado pulado.
+    "pulada cm" descreve a unidade de uma medida que nao existe: a linha fica parecendo
+    dado incompleto em vez de dado ausente.
+
+  O travessao de campo vazio lia como barra de carregamento.
+    Em 105 pontos numa serifada, um travessao e uma barra horizontal larga e clara no
+    meio da tela. No estado de baseline, que e onde o campo nasce vazio, ele parecia
+    conteudo em carregamento. Removido: o que diz que ali se digita e a regua vermelha
+    embaixo, mais o cursor — que existe no aparelho e nao no harness, entao esta e a
+    unica das seis correcoes que eu nao consegui verificar rodando.
+
+
+OS CINCO CRITERIOS, REVISADOS DEPOIS DE VER RODANDO
+
+  1. Sem botao primario, o avanco pela tecla de retorno.
+     Sobrevive, e por pouco. A ausencia de botao continua certa e o numero continua
+     sendo o unico elemento forte. Mas o caminho de avanco que a maquete supunha —
+     tecla de retorno — nao estava garantido no Android, e no iOS a alternativa que eu
+     tinha escrito estava embaixo do teclado. O criterio sobreviveu porque a acao de
+     texto subiu; sem essa correcao ele teria produzido uma tela sem saida.
+
+  2. Uma medida por tela.
+     Sobrevive inteiro. E o unico dos cinco que o teclado nao toca: ele e sobre o que
+     esta na tela, e o teclado so muda quanto de tela ha.
+
+  3. O valor anterior visivel sem virar alvo.
+     Sobrevive. "anterior 38,5" fica logo acima do rodape e continua legivel com o
+     teclado aberto, no iPhone 13, no Pixel 5 e no iPhone SE. No SE ele encosta no
+     rodape — 80 pontos de folga contra 190 no iPhone 13 — mas nao colide.
+
+  4. Faixa de vaos contando passos dentro da sessao.
+     Sobrevive, e ganhou uma coisa que eu nao tinha previsto: no baseline a sessao tem
+     catorze passos em vez de dez, e a faixa fica visivelmente mais fina. Isso diz "esta
+     sessao e mais longa" sem escrever nada, o que e o comportamento certo.
+
+  5. O vazio grande fazendo o numero parecer maior.
+     Nao sobrevive como estava, e sobrevive numa versao mais fraca do que eu previ e
+     mais forte do que eu temi.
+     Sem teclado o vazio ocupa 430 pontos. Com o teclado do iOS aberto, a area visivel
+     cai para 472 e o vazio para 147 — cerca de um terco do que era. O numero continua
+     sendo o maior elemento por uma margem enorme, entao o efeito nao depende do vazio
+     tanto quanto eu tinha escrito; o que o vazio fazia era mais silencio do que
+     tamanho. No iPhone SE o vazio cai para 80 pontos e o silencio some quase todo, sem
+     que nada colida.
+     Eu escrevi no ciclo passado que este criterio era "verdadeiro na maquete e so
+     parcialmente verdadeiro no aparelho". Estava certo na direcao e errado na causa: o
+     numero nao dependia do vazio para parecer grande.
+
+
+DISCORDANCIAS
+
+  O preenchimento diz a direcao, mas a area diz outra coisa mais alto, e a area nao
+  esta sob controle de ninguem.
+    A regra decidida — preenchido para fora, vazado para dentro, mesma cor — funciona
+    quando se olha um vertice. Ela nao funciona quando se olha a figura: o que salta
+    primeiro e o tamanho do poligono, e poligono maior le como "melhor" antes de
+    qualquer vertice ser examinado. Isso reintroduz por area exatamente o juizo de
+    valor que a eliminacao da inversao de eixo tirou da matematica, e por um canal que
+    nao foi decidido por ninguem.
+    E pior que a versao com cor, porque cor era uma escolha visivel que voce recusou, e
+    area e uma consequencia da geometria que ninguem escolheu. Cintura para fora e
+    ombro para fora empurram o poligono na mesma direcao, e as duas coisas nao
+    significam a mesma coisa para ninguem.
+    Nao tenho proposta pronta e nao vou inventar mecanica no relatorio. O que proponho
+    e que o teste de campo pergunte isso primeiro, antes de perguntar sobre
+    preenchimento: mostre o conjunto A e pergunte o que a pessoa entendeu, sem citar
+    nenhuma regra. Se a primeira frase de tres em cinco pessoas for sobre tamanho, a
+    regra de preenchimento esta resolvendo o problema errado.
+
+  A pagina de campo esta sem legenda por decisao minha, e isso limita o que o teste
+  mede.
+    Sem legenda ela mede se a regra e autoevidente, e a resposta quase certamente e
+    nao — nenhuma convencao de grafico e autoevidente na primeira exposicao. O que
+    interessa saber e outra coisa: se a regra e aprendivel numa frase e se ela gruda.
+    Deixei sem legenda porque acrescentar uma seria copy que o usuario le, e isso e
+    gate humano seu. Registro que o teste como esta responde a pergunta menos util das
+    duas, e que a versao util precisa de uma frase escrita por voce.
+
+  Sobre a divida do react-native: eu trouxe uma arvore de quatrocentos pacotes para ler
+  seis definicoes de tipo, e isso e desproporcional mesmo estando justificado.
+    A alternativa que descartei era escrever eu mesmo as declaracoes de View, Text,
+    TextInput, Pressable, ScrollView e StyleSheet. Descartei porque as telas passariam
+    a ser checadas contra a minha ideia de React Native, e cada prop que eu errasse
+    viraria um bug que so aparece no aparelho — que e a mesma classe de erro que o
+    harness existe para eliminar. Mas o resultado e que a arvore de dependencia deste
+    repositorio triplicou num ciclo em que nenhuma linha de produto depende dela.
+    Se o Expo nao entrar no proximo ciclo, isto vira divida sem contrapartida e eu
+    prefiro remover e escrever as declaracoes a mao do que deixar parada.
+
+  O harness tem uma classe de erro propria e ela ja se manifestou.
+    A tela de 1410 pontos dentro do quadro de 390 nao era defeito da tela: era defeito
+    do meu quadro. Um harness que erra faz capturas erradas com a mesma aparencia de
+    capturas certas, e eu so peguei aquele porque o sintoma foi grosseiro.
+    A protecao que existe hoje e eu medir a arvore de caixas com o navegador em vez de
+    olhar a imagem, e foi assim que achei. Nao virou gate. Registro como limite
+    conhecido: a partir de agora, "a tela roda" quer dizer "roda no meu harness", e a
+    distancia entre isso e o aparelho continua sendo desconhecida ate o Expo.
+
+
+EM ABERTO
+
+  Ligar a protecao de main no console do GitHub, com os quatro checks obrigatorios.
+  Ate la a regra existe escrita e nao existe aplicada.
+
+  O teste de campo com cinco pessoas. apps/mobile/dist/hexagono.html esta pronto para
+  ser enviado. Sugestao de roteiro na primeira discordancia.
+
+  Fontes de verdade — serifada para o numero, mono para rotulo. Hoje sao familias
+  genericas, e o que esta nas capturas e o que o navegador escolheu. O registro
+  tipografico ja e o certo; a face nao e.
+
+  Expo. Enquanto ele nao entrar, `react-native` esta instalado so pelos tipos e a
+  tela nunca rodou em aparelho.
+
+  Renomear o repositorio no GitHub, nome de exibicao no Supabase e Private
+  Vulnerability Reporting seguem como acao de console.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  Nada. As cinco secoes do ciclo estao fechadas.
+
+  O que espera decisao sua, e nao esta bloqueando: a frase de legenda do hexagono, se
+  o teste de campo mostrar que a regra precisa de uma; e o que fazer com a leitura por
+  area, se ela dominar as respostas.

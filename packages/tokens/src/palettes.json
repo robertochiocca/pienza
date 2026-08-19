@@ -1,0 +1,98 @@
+{
+  "$comentario": [
+    "Fonte unica de cor do Pienza. Nenhum literal de cor existe fora deste arquivo,",
+    "e scripts/gate-cores.mjs reprova o build se aparecer.",
+    "",
+    "O conjunto tem exatamente UM matiz cromatico: vermelho, mais neutros. Isso e a",
+    "protecao estrutural contra semaforo — nao existe segunda cor com que montar o",
+    "par verde/vermelho, e um unico verde reconstruiria o par sozinho porque quem",
+    "olha completa. Introduzir um segundo matiz exige ADR datada.",
+    "",
+    "'uso' define o limiar de contraste que o gate cobra: texto 4.5, grafico 3.0,",
+    "decorativo nenhum. Um token so pode ser usado no papel que declara aqui."
+  ],
+
+  "paletas": {
+    "bandeira": {
+      "modo": "light",
+      "fundo": "bg",
+      "tokens": {
+        "bg": { "valor": "#FFFFFF", "uso": "fundo", "papel": "fundo da tela" },
+        "surface": {
+          "valor": "#FAF9F8",
+          "uso": "fundo",
+          "papel": "superficie levemente destacada"
+        },
+        "text": { "valor": "#12100F", "uso": "texto", "papel": "texto principal, numero" },
+        "text-2": {
+          "valor": "#5A5350",
+          "uso": "texto",
+          "papel": "rotulo, legenda, valor anterior"
+        },
+        "grafite": {
+          "valor": "#3D3A38",
+          "uso": "grafico",
+          "papel": "traco de dado, serie anterior"
+        },
+        "brand": {
+          "valor": "#DA291C",
+          "uso": "grafico",
+          "papel": "fundo de botao, regua, poligono atual"
+        },
+        "action": {
+          "valor": "#B3141E",
+          "uso": "texto",
+          "papel": "vermelho em texto e icone pequeno"
+        },
+        "line": { "valor": "#E4E1DF", "uso": "decorativo", "papel": "fio estrutural de 1px" }
+      }
+    },
+
+    "noturno": {
+      "modo": "dark",
+      "fundo": "bg",
+      "tokens": {
+        "bg": { "valor": "#0D0B0A", "uso": "fundo", "papel": "fundo da tela" },
+        "surface": {
+          "valor": "#1A1614",
+          "uso": "fundo",
+          "papel": "superficie levemente destacada"
+        },
+        "text": { "valor": "#F5F2F0", "uso": "texto", "papel": "texto principal, numero" },
+        "text-2": {
+          "valor": "#A39C98",
+          "uso": "texto",
+          "papel": "rotulo, legenda, valor anterior"
+        },
+        "grafite": {
+          "valor": "#6E6764",
+          "uso": "grafico",
+          "papel": "traco de dado, serie anterior"
+        },
+        "brand": {
+          "valor": "#E8483C",
+          "uso": "texto",
+          "papel": "fundo de botao, regua, poligono atual, texto de acao"
+        },
+        "line": { "valor": "#262120", "uso": "decorativo", "papel": "fio estrutural de 1px" }
+      }
+    }
+  },
+
+  "pares": [
+    {
+      "paleta": "bandeira",
+      "frente": "#FFFFFF",
+      "fundo": "brand",
+      "uso": "texto",
+      "papel": "texto do botao primario"
+    },
+    {
+      "paleta": "noturno",
+      "frente": "#0D0B0A",
+      "fundo": "brand",
+      "uso": "texto",
+      "papel": "texto do botao primario. NAO e escolha estetica: branco sobre #E8483C da 3.87 e reprova AA; o quase-preto da 5.07. Se alguem 'corrigir' isto para branco por achar estranho, o botao para de passar."
+    }
+  ]
+}

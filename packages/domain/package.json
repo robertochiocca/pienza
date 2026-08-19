@@ -1,0 +1,15 @@
+{
+  "name": "@pienza/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Logica de dominio pura do Pienza. Zero dependencias de UI ou de plataforma.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  }
+}

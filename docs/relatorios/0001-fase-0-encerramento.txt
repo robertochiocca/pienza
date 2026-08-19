@@ -1,0 +1,217 @@
+RYVEN — RELATORIO 0001
+Fase: 0   Ciclo: 2   Data: 2026-08-16
+
+Contexto para quem le fora do repositorio: o Ryven e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na
+cadencia que escolher, e ve a propria mudanca comparada com ela mesma. Este ciclo
+encerra a Fase 0 (fundacao: schema, RLS, gates de engenharia) e prepara o gate
+humano que abre a Fase 1.
+
+
+FEITO
+
+  Reescrita do historico do repositorio, autorizada neste ciclo.
+    Removidos os trailers de coautoria de todos os commits e reescrita a
+    identidade de autor e committer para Roberto Chiocca. Backups de
+    refs/original purgados, reflog expirado, gc com prune. Publicado nas duas
+    branches com --force-with-lease. Configuracao local do git ajustada para a
+    mesma identidade, de modo que commits futuros ja nascam corretos.
+
+  SECURITY.md — canal de reporte trocado por GitHub Private Vulnerability
+    Reporting (aba Security do repositorio). Nenhum e-mail publicado. Declarado
+    que nao ha SLA, por ser projeto de uma pessoa.
+
+  docs/decisoes/0005-medida-bilateral-e-assimetria.md — nova ADR.
+
+  docs/decisoes/0002-mecanicas-proibidas.md — novo item 11, metrica de
+    assimetria entre lados, com cobertura de gate marcada como parcial.
+
+  scripts/gate-mecanicas-proibidas.mjs — regra `assimetria` e tres fixtures novas
+    no auto-teste (duas positivas, uma negativa que garante que calcular a media
+    dos lados continua permitido).
+
+  scripts/db-test.sh — dois modos. `shim` (padrao) contra Postgres cru mais o
+    bootstrap local; `supabase` contra a pilha real ja de pe, sem shim.
+
+  scripts/sql/bootstrap-local.sql — movido de supabase/tests/. Ele nao e teste, e
+    dentro daquele diretorio seria varrido como se fosse.
+
+  supabase/config.toml — novo, necessario para `supabase start`.
+
+  .github/workflows/ci.yml — novo job `banco-fidelidade`, condicionado a pull
+    request com base em main, que sobe a pilha real do Supabase, deixa as
+    migrations serem aplicadas por ela e roda a suite pgTAP sem shim.
+
+  AGENTS.md — decisao de medida bilateral acrescentada a secao 2; nova secao 6
+    com a regra permanente de relatorio em arquivo.
+
+
+GATE
+
+  format (prettier)                        verde
+  lint (eslint + typescript-eslint)        verde
+  typecheck (tsc, noUncheckedIndexedAccess) verde
+  testes do dominio (vitest + fast-check)  verde, 14 testes
+  cobertura de packages/domain             100% linhas, ramos, funcoes e
+                                           declaracoes; piso configurado em 95
+  gate de mecanicas proibidas              verde, 26 casos de auto-teste
+  gate de dominio puro                     verde, zero dependencias declaradas
+  auditoria de dependencia (npm audit)     verde, 0 vulnerabilidades
+  suite de banco, modo shim                verde, 38 assercoes
+                                           (24 de isolamento, 14 de travas)
+  suite de banco, modo supabase            NAO EXECUTADA — ver BLOQUEADO EM MIM
+
+  Verificacao da reescrita de historico:
+    trailers antes                         6
+    trailers depois                        0
+    refs/original apos purga               0
+    commits com identidade de terceiro     0 (confirmado tambem via API do
+                                           GitHub, no remoto)
+
+
+DECIDIDO
+
+  Medida bilateral entra no eixo pela media, e nenhuma metrica de assimetria e
+  computada.
+    O raciocinio que descarta as alternativas: usar o maior dos dois lados nao
+    apenas lisonjeia, ele salta se o lado dominante mudar entre check-ins — o
+    grafico registraria um evento que nao aconteceu no corpo. Lado fixo e
+    arbitrario e joga fora metade do dado coletado. A media esconde assimetria, e
+    isso e aceitavel porque o hexagono nao e o lugar de mostrar assimetria.
+    O que fecha a questao sobre nao calcular assimetria e o instrumento: fita
+    metrica na mao da propria pessoa tem erro de medicao que frequentemente supera
+    a assimetria real. Exibir "seu braco direito esta 0,4 cm maior" seria
+    apresentar ruido como achado, e distinguir um do outro exigiria um limiar de
+    erro plausivel de afericao — numero que teria de ser inventado. Alem disso,
+    assimetria tem causas que vao de dominancia manual a lesao, e qualquer rotulo
+    seria afirmacao clinica sem base. Os dois lados aparecem crus, lado a lado,
+    sem delta.
+    Quando faltar um lado, o eixo usa o lado presente: exigir os dois
+    transformaria uma medida esquecida em eixo apagado. Fica anotado em
+    proportion_ratios.inputs quais lados entraram, porque um eixo calculado com um
+    lado num check-in e com dois no seguinte nao e estritamente comparavel.
+
+  O item de assimetria entrou na lista de mecanicas proibidas com gate, e nao
+  apenas na ADR 0005.
+    O raciocinio: e exatamente o perfil de feature que a lista existe para conter
+    — parece util, o dado ja esta no banco, e um subtrair e a coisa mais facil de
+    escrever no repositorio inteiro. Deixar so na ADR 0005 seria confiar em
+    memoria. A cobertura foi marcada como parcial, porque o gate pega o
+    vocabulario e nao pega uma subtracao entre lados escrita sem nomear o que e.
+
+  O job de fidelidade nao usa `supabase test db`.
+    Dois motivos. Ele varreria tudo que estivesse em supabase/tests, o que incluia
+    o bootstrap local — resolvido movendo o bootstrap para scripts/sql/. E o
+    criterio dele nao reprova divergencia entre o plano declarado e o numero de
+    assercoes executadas, que e uma falha ja ocorrida neste repositorio. O runner
+    proprio, em modo supabase, aplica o mesmo criterio nos dois ambientes.
+
+  A CLI do Supabase foi pinada em versao exata, e nao em `latest`.
+    Ferramenta que decide se o build passa nao muda sem alguem decidir. O numero
+    escolhido nunca foi executado aqui, e isso esta escrito no proprio workflow em
+    vez de ficar implicito.
+
+
+DEFEITOS ENCONTRADOS
+
+  A sequencia de reescrita de historico tinha um defeito que anulava a protecao
+  do --force-with-lease.
+    `git filter-branch -- --all` reescreve tambem refs/remotes/origin/*. Como
+    --force-with-lease compara, por padrao, contra o ref de rastreamento local, a
+    comparacao passaria a ser feita contra um valor fabricado pela propria
+    reescrita, e nao contra o estado real do remoto. Na pratica o push seria
+    rejeitado por lease invalido, ou — pior — daria a sensacao de protecao sem
+    proteger. Corrigido inserindo `git fetch origin` entre a limpeza e o push, o
+    que restaura os refs de rastreamento aos valores verdadeiros antes da
+    comparacao. Verificado: antes do fetch, origin/main apontava para o SHA
+    reescrito; depois, para o SHA real que estava no servidor.
+
+  A limpeza de trailers estava incompleta por um motivo estrutural, nao por erro
+  de execucao.
+    Depois de remover os seis trailers, uma verificacao pela API do GitHub mostrou
+    que autor e committer de todos os sete commits continuavam registrados em
+    outra conta, com atribuicao visivel em cada pagina de commit e no grafico de
+    contribuidores. O trailer era a metade menor do rastro. Uma verificacao que
+    contasse apenas linhas Co-Authored-By teria retornado zero e concluido que
+    estava limpo. Corrigido com uma segunda passada usando --env-filter,
+    reescrevendo identidade apenas nos commits cujo e-mail de autor era o de
+    terceiro, o que preserva o commit raiz intacto. Confirmado no remoto.
+
+  A primeira leitura pos-reescrita acusou 6 trailers e parecia falha.
+    Nao era: refs/original ainda existia, e `git log --all` inclui esses backups.
+    A contagem so e confiavel depois da purga. Registrado aqui porque a ordem
+    dos passos importa e a leitura intermediaria engana.
+
+  O gate de mecanicas pegava uma de tres violacoes plantadas.
+    Corrigido em ciclo anterior, repetido aqui por ser a causa de a regra nova de
+    assimetria ja nascer com fixture de camelCase: \b nao casa `streakDays` nem
+    `computeAsymmetry` sem normalizar a caixa.
+
+
+DISCORDANCIAS
+
+  Discordo do enquadramento do problema de autoria como problema de trailer.
+    O pedido tratava trailers como o rastro a remover, e a sequencia de comandos
+    verificava exatamente isso. Se ela tivesse sido seguida ao pe da letra, o
+    passo 3 teria impresso "limpo" com todos os commits ainda atribuidos a outra
+    conta no GitHub — que e o rastro que qualquer pessoa ve primeiro ao abrir o
+    repositorio. Trailer e texto dentro da mensagem; autoria e metadado do objeto
+    de commit, e e ela que alimenta a pagina de contribuidores. A verificacao
+    correta e sobre identidade, nao sobre linha de mensagem.
+
+  Discordo do piso de cobertura em 95 com cobertura real em 100.
+    Um piso cinco pontos abaixo do estado atual nao interrompe ninguem: ele
+    permite que a primeira funcao sem teste entre com o build verde. Piso serve
+    para avisar que algo regrediu, e este so avisaria depois que uma parte
+    razoavel do dominio ja estivesse descoberta. Enquanto o dominio e pequeno, o
+    piso deveria acompanhar o valor real. Contra-argumento honesto: a Fase 1 traz
+    o calculo de proporcao e um piso em 100 tende a virar atrito diario. A saida
+    que eu proponho e piso em 100 agora com regra escrita de que baixa-lo e uma
+    decisao datada e justificada, e nao um ajuste silencioso quando incomoda.
+    Nao mudei o valor porque a instrucao foi manter o piso — mas registro que
+    manter em 95 e, na pratica, nao ter piso neste momento.
+
+  Concordo com a leitura de que a cobertura do dominio e a parte facil, e
+  acrescento uma consequencia: o numero 100% cobre hoje quatro arquivos de
+  conversao de unidade. Ele nao diz nada sobre proporcao, sobre RLS e sobre as
+  mecanicas — e o README, ao listar cobertura ao lado dos outros gates, corre o
+  risco de sugerir que diz. Vale revisar essa frase quando a Fase 1 comecar.
+
+
+EM ABERTO
+
+  Piso de cobertura: manter em 95 ou subir para 100 com politica escrita de
+  reducao datada. Preciso da decisao para aplicar.
+
+  Versao da CLI do Supabase fixada em 2.114.0 sem nunca ter sido executada aqui.
+  Na primeira PR para main, se o job passar, o numero esta confirmado; se falhar,
+  preciso saber se prefere que eu ajuste a versao ou o job.
+
+  Mensagens dos tres commits anteriores a adocao do padrao ainda usam prefixo de
+  conventional commit (docs:, chore:), fora do estilo definido. Reescrever exige
+  uma terceira passada de historico, e a orientacao foi que a reescrita e
+  operacao unica. Deixei como esta. Se preferir uniformizar, e agora ou nunca.
+
+  Citacao de Reeves segue pendente de conferencia contra o exemplar, marcada em
+  docs/legal/sistemas-de-proporcao.md. Nao bloqueia nada: o modo de referencia
+  externa e Fase 3.
+
+
+BLOQUEADO EM MIM
+
+  Habilitar o Private Vulnerability Reporting no repositorio. O SECURITY.md ja
+  aponta para esse canal, mas ele nao pode ser habilitado por API com o acesso
+  disponivel — e configuracao de repositorio, em Settings, Security, Advanced
+  Security. Enquanto nao estiver ligado, o documento aponta para uma porta
+  fechada. Confirme quando ligar.
+
+  O job banco-fidelidade nunca foi executado. Nao ha Docker nem a CLI do Supabase
+  no ambiente onde ele foi escrito, entao config.toml, versao da CLI e o modo
+  supabase do runner sao codigo revisado e nao codigo verificado. A primeira
+  execucao real acontece na primeira PR para main. Considero isso aceitavel
+  porque uma falha ali e informativa e barata, mas nao quero que conste como
+  verificado.
+
+  Gate humano da Fase 1: duas abordagens de interacao para a entrada de medidas,
+  apresentadas na conversa junto com este relatorio. Nada de tela sera escrito
+  antes da escolha.

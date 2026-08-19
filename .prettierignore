@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+
+# Markdown fica fora: as tabelas tem acentuacao e o realinhamento do Prettier
+# conta largura de caractere diferente, embaralhando o texto-fonte.
+*.md

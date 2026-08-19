@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Comeca no minimo. Nenhum job aqui escreve no repositorio nem publica nada, entao
+# nao ha o que subir. Qualquer permissao adicional entra com o motivo escrito ao lado.
+permissions:
+  contents: read
+
+jobs:
+  codigo:
+    name: formato, lint, tipos, testes, gates
+    runs-on: ubuntu-latest
+    steps:
+      # Actions por SHA completo e nao por tag: tag e um ponteiro que o dono do
+      # repositorio pode mover para outro commit a qualquer momento, e junto com ela
+      # move o que roda dentro do meu CI. O comentario ao lado registra a versao
+      # legivel, ja que o SHA sozinho nao diz nada.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Formatacao
+        run: npm run format
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Cobertura do dominio tem piso configurado no vitest. Abaixo do piso o vitest
+      # sai com codigo de erro, entao este passo reprova sozinho.
+      - name: Testes do dominio
+        run: npm test
+
+      - name: Gate de mecanicas proibidas
+        run: npm run gate:mecanicas
+
+      - name: Gate de nome antigo
+        run: npm run gate:nome
+
+      - name: Gate de cores
+        run: npm run gate:cores
+
+      - name: Gate de segredos
+        run: npm run gate:segredos
+
+      - name: Gate de papel da suite
+        run: npm run gate:papel
+
+      - name: Gate de dominio puro
+        run: npm run gate:dominio-puro
+
+      # Divida com prazo. A data em scripts/prazos.json e mecanica: vencida, reprova.
+      # Prorrogar continua possivel e passa a exigir um commit reescrevendo a entrada.
+      - name: Gate de prazos
+        run: npm run gate:prazos
+
+      # Nao e `npm audit --audit-level=<n>`: o gate le o relatorio e cobra que cada
+      # advisory esteja aceito por escrito, com pacote, data e motivo. Ver o cabecalho
+      # de scripts/gate-auditoria.mjs.
+      - name: Auditoria de dependencia
+        run: npm run audit:deps
+
+  segredos-no-historico:
+    name: varredura de segredo no historico
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth 0: a varredura le todos os commits, e o clone raso do padrao
+      # traria um so — o gate passaria sem ter olhado quase nada.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - run: npm run gate:segredos:historico
+
+  banco:
+    name: migrations e RLS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Postgres do runner mais pgTAP, em vez da CLI do Supabase em Docker. O que
+      # esta suite verifica e o que o Postgres decide — restricoes, gatilhos e RLS —
+      # e isso nao precisa da pilha inteira. Ver docs/decisoes/0003.
+      - name: Instalar Postgres e pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-16 postgresql-16-pgtap
+
+      - name: Subir o cluster
+        run: |
+          sudo systemctl start postgresql@16-main || sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -c "alter user postgres password 'postgres'"
+
+      - name: Migrations, seed e suite pgTAP
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: npm run db:test
+
+  # O job acima roda contra um shim de auth e storage, que e rapido e portanto roda
+  # em todo commit — mas e uma reproducao minha da superficie do Supabase, e nada
+  # garante que ela continue fiel. Este job fecha essa lacuna onde ela importa: na
+  # fronteira para main, contra a pilha real, com o custo de minutos em vez de
+  # segundos. Rapido no loop, fiel na fronteira.
+  banco-fidelidade:
+    name: migrations contra a pilha real do Supabase
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          # Versao exata, nao `latest`: a CLI decide se este job passa, e uma major
+          # nova chegando sozinha reprovaria o build sem ninguem ter mudado nada.
+          # Este numero nunca foi executado neste repositorio — nao ha Docker no
+          # ambiente onde o job foi escrito — entao ele e um chute informado ate a
+          # primeira execucao real, na primeira PR para main.
+          version: 2.114.0
+
+      # `supabase start` aplica supabase/migrations na ordem contra a imagem real do
+      # Postgres do Supabase, com auth, storage e papeis de verdade. Se alguma
+      # migration so funciona por causa de algo que o meu shim fornece e o Supabase
+      # nao, ou colide com algo que o Supabase ja cria, quebra aqui.
+      - name: Subir a pilha e aplicar as migrations
+        run: supabase start
+
+      # A suite roda pelo mesmo runner, em modo supabase: sem shim, contra o banco
+      # que a CLI expoe. Nao uso `supabase test db` porque ele varreria tudo que
+      # estiver em supabase/tests, e o criterio dele nao reprova divergencia entre o
+      # plano declarado e o numero de assercoes executadas — que e uma falha que ja
+      # aconteceu neste repositorio.
+      - name: Suite pgTAP contra a pilha real
+        env:
+          PIENZA_DB_MODO: supabase
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: npm run db:test
+
+      - name: Derrubar
+        if: always()
+        run: supabase stop --no-backup

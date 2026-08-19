@@ -1,0 +1,25 @@
+{
+  "name": "@pienza/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "App do Pienza. As telas sao React Native; o harness web existe para ve-las rodando antes do Expo.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build:web": "node scripts/build-web.mjs",
+    "serve:web": "node scripts/serve-web.mjs",
+    "capturar": "node scripts/capturar.mjs",
+    "gate:quadro": "node scripts/capturar.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-native-web": "0.21.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "^19.2.3",
+    "esbuild": "0.25.12",
+    "playwright": "^1.57.0",
+    "react-native": "^0.87.0"
+  }
+}
