@@ -17,25 +17,13 @@
  * num commit, em vez de a divida vencer sem ninguem notar.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { avaliar as avaliarCondicao, lerManifestos } from './condicoes.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-const CONDICOES = {
-  pacote_presente: (manifesto, pacote) => temPacote(manifesto, pacote),
-  pacote_ausente: (manifesto, pacote) => !temPacote(manifesto, pacote),
-};
-
-function temPacote(manifesto, pacote) {
-  for (const campo of ['dependencies', 'devDependencies', 'peerDependencies']) {
-    if (Object.prototype.hasOwnProperty.call(manifesto[campo] ?? {}, pacote)) return true;
-  }
-  return false;
-}
-
-export function avaliar(prazos, manifestos, hoje) {
+export function avaliar(prazos, manifestos, hoje, raiz) {
   const problemas = [];
 
   for (const prazo of prazos) {
@@ -47,21 +35,13 @@ export function avaliar(prazos, manifestos, hoje) {
       continue;
     }
 
-    const testar = CONDICOES[prazo.condicao];
-    if (testar === undefined) {
-      problemas.push(
-        `${rotulo}: condicao "${prazo.condicao}" desconhecida (use ${Object.keys(CONDICOES).join(' ou ')})`,
-      );
+    const resultado = avaliarCondicao(prazo, manifestos, raiz);
+    if (!resultado.ok) {
+      problemas.push(`${rotulo}: ${resultado.motivo}`);
       continue;
     }
 
-    const manifesto = manifestos[prazo.manifesto];
-    if (manifesto === undefined) {
-      problemas.push(`${rotulo}: o manifesto ${prazo.manifesto} nao foi encontrado`);
-      continue;
-    }
-
-    const cumprida = testar(manifesto, prazo.pacote);
+    const cumprida = resultado.satisfeita;
 
     if (cumprida) {
       problemas.push(
@@ -88,7 +68,7 @@ async function autoTeste() {
   const falhas = [];
 
   for (const caso of casos) {
-    const problemas = avaliar(caso.prazos, caso.manifestos, caso.hoje);
+    const problemas = avaliar(caso.prazos, caso.manifestos, caso.hoje, ROOT);
     const passou = problemas.length === 0;
     if (passou !== (caso.esperado === 'passa')) {
       falhas.push(
@@ -114,13 +94,7 @@ const casos = await autoTeste();
 const lista = JSON.parse(readFileSync(new URL('./prazos.json', import.meta.url), 'utf8'));
 const prazos = lista.prazos ?? [];
 
-const manifestos = {};
-for (const prazo of prazos) {
-  const caminho = join(ROOT, prazo.manifesto ?? '');
-  if (existsSync(caminho)) manifestos[prazo.manifesto] = JSON.parse(readFileSync(caminho, 'utf8'));
-}
-
-const problemas = avaliar(prazos, manifestos, new Date());
+const problemas = avaliar(prazos, lerManifestos(prazos, ROOT), new Date(), ROOT);
 
 if (problemas.length === 0) {
   console.log(

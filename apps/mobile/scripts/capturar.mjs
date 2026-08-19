@@ -183,6 +183,25 @@ await foto('13-hexagono-noturno', '[data-quadro="hexagono"]');
 await clicar('de 33 dias');
 await foto('14-hexagono-noturno-33-dias', '[data-quadro="hexagono"]');
 
+// As tres candidatas tipograficas, nas duas paletas, com o teclado aberto. E aqui que o
+// gate de quadro ganha um segundo trabalho: face nova muda a largura do numero, e a
+// candidata mais larga com o valor mais largo e o caso que transborda primeiro.
+console.log('== candidatas de fonte ==');
+await clicar('com historico');
+await clicar('cobre');
+for (const conjunto of ['generico', 'a', 'b', 'c']) {
+  await clicar(conjunto);
+  // Valor de tres digitos: e o mais largo que o vocabulario permite em cm.
+  await pagina.locator('[data-quadro="aparelho"] input').fill('188,8');
+  await pagina.waitForTimeout(400);
+  await foto(`30-fonte-${conjunto}-bandeira`);
+  await clicar('noturno');
+  await foto(`31-fonte-${conjunto}-noturno`);
+  await clicar('bandeira');
+}
+await clicar('generico');
+await clicar('anterior');
+
 console.log('== pagina de campo, do arquivo unico ==');
 const campo = await navegador.newPage({
   viewport: { width: 390, height: 844 },

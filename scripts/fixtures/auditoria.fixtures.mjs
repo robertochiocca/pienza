@@ -18,6 +18,9 @@ function relatorio(entradas) {
 const A = 'https://github.com/advisories/GHSA-aaaa-aaaa-aaaa';
 const B = 'https://github.com/advisories/GHSA-bbbb-bbbb-bbbb';
 
+const MANIFESTO = { 'apps/exemplo/package.json': { dependencies: { expo: '57.0.0' } } };
+const SEM_EXPO = { 'apps/exemplo/package.json': { dependencies: {} } };
+
 export const casos = [
   {
     nome: 'arvore limpa e lista vazia',
@@ -82,6 +85,61 @@ export const casos = [
     aceitas: [{ advisory: 'GHSA-aaaa-aaaa-aaaa', severidade_maxima: 'critical' }],
     esperado: 'reprova',
     contem: 'critical',
+  },
+  {
+    // A premissa da aceitacao vence quando o mundo muda. Prosa nao dispara; condicao sim.
+    nome: 'premissa vencida reprova mesmo com o advisory listado',
+    relatorio: relatorio({ alguma: { severidade: 'high', advisories: [A] } }),
+    aceitas: [
+      {
+        advisory: 'GHSA-aaaa-aaaa-aaaa',
+        severidade_maxima: 'high',
+        reabrir_se: {
+          condicao: 'pacote_presente',
+          manifesto: 'apps/exemplo/package.json',
+          pacote: 'expo',
+        },
+      },
+    ],
+    manifestos: MANIFESTO,
+    esperado: 'reprova',
+    contem: 'venceu',
+  },
+  {
+    nome: 'premissa ainda valida passa',
+    relatorio: relatorio({ alguma: { severidade: 'high', advisories: [A] } }),
+    aceitas: [
+      {
+        advisory: 'GHSA-aaaa-aaaa-aaaa',
+        severidade_maxima: 'high',
+        reabrir_se: {
+          condicao: 'pacote_presente',
+          manifesto: 'apps/exemplo/package.json',
+          pacote: 'expo',
+        },
+      },
+    ],
+    manifestos: SEM_EXPO,
+    esperado: 'passa',
+  },
+  {
+    // Condicao que nao da para avaliar e condicao que nunca dispara.
+    nome: 'reabrir_se sobre manifesto inexistente reprova',
+    relatorio: relatorio({ alguma: { severidade: 'high', advisories: [A] } }),
+    aceitas: [
+      {
+        advisory: 'GHSA-aaaa-aaaa-aaaa',
+        severidade_maxima: 'high',
+        reabrir_se: {
+          condicao: 'pacote_presente',
+          manifesto: 'apps/some-nada/package.json',
+          pacote: 'expo',
+        },
+      },
+    ],
+    manifestos: SEM_EXPO,
+    esperado: 'reprova',
+    contem: 'nao foi encontrado',
   },
   {
     nome: 'mesmo advisory chegando por dois pacotes conta uma vez so',

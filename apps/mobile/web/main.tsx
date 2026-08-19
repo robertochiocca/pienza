@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { buildSessionPlan, type Answer, type EixoDeEntrada } from '@pienza/domain';
 import { MeasurementEntry } from '../src/screens/MeasurementEntry';
 import { MeasurementReview, type LinhaDeRevisao } from '../src/screens/MeasurementReview';
-import { cor, paleta, FAMILIA, type NomeDePaleta } from '../src/theme';
+import { cor, paleta, FAMILIA, type NomeDeFonte, type NomeDePaleta } from '../src/theme';
 import { HexagonoWeb } from './HexagonoWeb';
 import { ANTERIORES, VOCABULARIO } from './dados';
 import { DISPOSITIVOS, modoPadrao, type Dispositivo, type ModoDeTeclado } from './dispositivos';
@@ -85,6 +85,7 @@ const CROMO = paleta('bandeira');
 
 function Harness() {
   const [palette, setPalette] = useState<NomeDePaleta>('bandeira');
+  const [fonte, setFonte] = useState<NomeDeFonte>('generico');
   const [dispositivo, setDispositivo] = useState<Dispositivo>(DISPOSITIVOS[0]!);
   const [teclado, setTeclado] = useState<ModoDeTeclado>(modoPadrao(DISPOSITIVOS[0]!));
   const [cenario, setCenario] = useState<Cenario>('recorrente');
@@ -204,6 +205,8 @@ function Harness() {
         }}
         teclado={teclado}
         setTeclado={setTeclado}
+        fonte={fonte}
+        setFonte={setFonte}
         cenario={cenario}
         setCenario={(c) => {
           setCenario(c);
@@ -268,6 +271,7 @@ function Harness() {
                 <MeasurementReview
                   linhas={linhas}
                   palette={palette}
+                  fonte={fonte}
                   largura={dispositivo.largura}
                   onVoltar={() => setIndice(Math.max(0, plano.steps.length - 1))}
                   onGravar={() => undefined}
@@ -280,6 +284,7 @@ function Harness() {
                   valor={valorDe(step.id, step.prefilled ? step.previousValue : null)}
                   mantido={respostas.get(step.id)?.kind === 'kept'}
                   palette={palette}
+                  fonte={fonte}
                   largura={dispositivo.largura}
                   alturaCobertaPorTeclado={teclado === 'cobre' ? alturaTeclado : 0}
                   onChange={(v) => setRascunho(new Map(rascunho).set(step.id, v))}
@@ -388,6 +393,8 @@ function Controles(props: {
   setDispositivo: (d: Dispositivo) => void;
   teclado: ModoDeTeclado;
   setTeclado: (m: ModoDeTeclado) => void;
+  fonte: NomeDeFonte;
+  setFonte: (f: NomeDeFonte) => void;
   cenario: Cenario;
   setCenario: (c: Cenario) => void;
   indice: number;
@@ -428,6 +435,12 @@ function Controles(props: {
             onClick={() => props.setTeclado(m)}
             rotulo={m}
           />
+        ))}
+      </Grupo>
+
+      <Grupo titulo="fonte">
+        {(['generico', 'a', 'b', 'c'] as const).map((f) => (
+          <Botao key={f} ativo={props.fonte === f} onClick={() => props.setFonte(f)} rotulo={f} />
         ))}
       </Grupo>
 

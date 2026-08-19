@@ -36,6 +36,7 @@ const config = {
 
 await mkdir(saida, { recursive: true });
 await cp(resolve(raiz, 'web/index.html'), resolve(saida, 'index.html'));
+await cp(resolve(raiz, 'web/fontes'), resolve(saida, 'fontes'), { recursive: true });
 
 if (process.argv.includes('--watch')) {
   const ctx = await context(config);

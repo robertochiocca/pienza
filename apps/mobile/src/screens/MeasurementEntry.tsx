@@ -1,7 +1,15 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { SessionStep } from '@pienza/domain';
-import { cor, corDeAcao, escala, FAMILIA, paleta, type NomeDePaleta } from '../theme';
+import {
+  cor,
+  corDeAcao,
+  escala,
+  familia,
+  paleta,
+  type NomeDeFonte,
+  type NomeDePaleta,
+} from '../theme';
 
 export interface MeasurementEntryProps {
   readonly step: SessionStep;
@@ -10,6 +18,8 @@ export interface MeasurementEntryProps {
   readonly valor: string;
   readonly mantido: boolean;
   readonly palette: NomeDePaleta;
+  /** Conjunto tipografico. `generico` ate alguem escolher a face. */
+  readonly fonte?: NomeDeFonte;
   readonly largura: number;
   /**
    * Quanto do fundo desta tela o teclado esta cobrindo, em pontos.
@@ -41,6 +51,7 @@ export interface MeasurementEntryProps {
 export function MeasurementEntry(props: MeasurementEntryProps) {
   const p = paleta(props.palette);
   const s = escala(props.largura);
+  const FAMILIA = familia(props.fonte ?? 'generico');
   const estilos = useMemo(() => criarEstilos(props.largura), [props.largura]);
 
   const rotulo = props.step.keptLeavesAxisPending

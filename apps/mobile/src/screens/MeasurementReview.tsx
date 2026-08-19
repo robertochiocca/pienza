@@ -1,6 +1,14 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { cor, corDeAcao, escala, FAMILIA, paleta, type NomeDePaleta } from '../theme';
+import {
+  cor,
+  corDeAcao,
+  escala,
+  familia,
+  paleta,
+  type NomeDeFonte,
+  type NomeDePaleta,
+} from '../theme';
 import { formatar } from './MeasurementEntry';
 
 export interface LinhaDeRevisao {
@@ -27,6 +35,8 @@ export interface LinhaDeRevisao {
 export interface MeasurementReviewProps {
   readonly linhas: readonly LinhaDeRevisao[];
   readonly palette: NomeDePaleta;
+  /** Conjunto tipografico. `generico` ate alguem escolher a face. */
+  readonly fonte?: NomeDeFonte;
   readonly largura: number;
   readonly onVoltar: () => void;
   readonly onGravar: () => void;
@@ -48,6 +58,7 @@ export interface MeasurementReviewProps {
 export function MeasurementReview(props: MeasurementReviewProps) {
   const p = paleta(props.palette);
   const s = escala(props.largura);
+  const FAMILIA = familia(props.fonte ?? 'generico');
   const estilos = useMemo(() => criarEstilos(props.largura), [props.largura]);
 
   return (
@@ -63,7 +74,7 @@ export function MeasurementReview(props: MeasurementReviewProps) {
 
       <ScrollView style={estilos.lista} contentContainerStyle={estilos.listaConteudo}>
         {props.linhas.map((linha) => (
-          <Linha key={linha.key} linha={linha} p={p} s={s} estilos={estilos} />
+          <Linha key={linha.key} linha={linha} p={p} s={s} f={FAMILIA} estilos={estilos} />
         ))}
       </ScrollView>
 
@@ -83,9 +94,10 @@ function Linha(props: {
   readonly linha: LinhaDeRevisao;
   readonly p: ReturnType<typeof paleta>;
   readonly s: ReturnType<typeof escala>;
+  readonly f: ReturnType<typeof familia>;
   readonly estilos: ReturnType<typeof criarEstilos>;
 }) {
-  const { linha, p, s, estilos } = props;
+  const { linha, p, s, f: FAMILIA, estilos } = props;
 
   const diferenca =
     linha.esquerdo !== null && linha.direito !== null
@@ -108,8 +120,24 @@ function Linha(props: {
 
       {linha.bilateral ? (
         <View style={estilos.lados}>
-          <Lado nome="esq" valor={linha.esquerdo} unidade={linha.unit} p={p} s={s} e={estilos} />
-          <Lado nome="dir" valor={linha.direito} unidade={linha.unit} p={p} s={s} e={estilos} />
+          <Lado
+            nome="esq"
+            valor={linha.esquerdo}
+            unidade={linha.unit}
+            p={p}
+            s={s}
+            f={FAMILIA}
+            e={estilos}
+          />
+          <Lado
+            nome="dir"
+            valor={linha.direito}
+            unidade={linha.unit}
+            p={p}
+            s={s}
+            f={FAMILIA}
+            e={estilos}
+          />
         </View>
       ) : (
         <Text
@@ -146,9 +174,10 @@ function Lado(props: {
   readonly unidade: string;
   readonly p: ReturnType<typeof paleta>;
   readonly s: ReturnType<typeof escala>;
+  readonly f: ReturnType<typeof familia>;
   readonly e: ReturnType<typeof criarEstilos>;
 }) {
-  const { nome, valor, unidade, p, s, e } = props;
+  const { nome, valor, unidade, p, s, f: FAMILIA, e } = props;
   return (
     <View style={e.lado}>
       <Text

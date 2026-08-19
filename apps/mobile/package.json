@@ -8,18 +8,24 @@
     "build:web": "node scripts/build-web.mjs",
     "serve:web": "node scripts/serve-web.mjs",
     "capturar": "node scripts/capturar.mjs",
-    "gate:quadro": "node scripts/capturar.mjs"
+    "gate:quadro": "node scripts/capturar.mjs",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "doctor": "expo-doctor"
   },
   "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-native-web": "0.21.1"
+    "expo": "^57.0.14",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
-    "@types/react": "19.2.2",
+    "@types/react": "~19.2.4",
     "@types/react-dom": "^19.2.3",
     "esbuild": "0.25.12",
-    "playwright": "^1.57.0",
-    "react-native": "^0.87.0"
-  }
+    "playwright": "^1.57.0"
+  },
+  "main": "expo/AppEntry.js"
 }

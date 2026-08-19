@@ -65,6 +65,19 @@ export default tseslint.config(
     },
   },
   {
+    // babel.config.js e metro.config.js sao CommonJS por exigencia do Expo: os dois sao
+    // carregados pelo runtime dele, que le `module.exports` e nao ESM. Nao ha escolha
+    // aqui, entao a excecao e nominal — os dois arquivos, e nao o padrao `*.config.js`,
+    // para que um terceiro arquivo de configuracao nao herde a licenca em silencio.
+    files: ['apps/mobile/babel.config.js', 'apps/mobile/metro.config.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { module: 'readonly', require: 'readonly', __dirname: 'readonly' },
+    },
+  },
+  {
     // Arquivos JavaScript soltos — este proprio config e os scripts de gate — nao
     // pertencem a nenhum tsconfig, e o typescript-eslint com `projectService`
     // reprova com "was not found by the project service" em vez de simplesmente

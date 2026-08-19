@@ -9,7 +9,7 @@ Dois achados saíram da mesma rodada de contas sobre o hexágono. Eles são inde
 segundo é o que importa mais — a primeira versão deste documento os apresentava na ordem
 inversa, e trocar essa ordem é a razão da reescrita.
 
-### Achado principal: o mapeamento de razão para raio amplifica
+### Achado principal: o fator de amplificação do mapeamento radial não estava declarado
 
 `razaoParaRaio` leva uma razão contra o baseline para uma fração do raio, dentro de uma faixa
 `[a, b]` e a partir de um raio mínimo `m`. A elasticidade na razão 1 é
@@ -24,6 +24,13 @@ ela se move perto de 8 vezes o que a razão se moveu: 8 no limite, 8,3 num passo
 O 8 é a área, e ele já inclui o quadrado. A primeira versão deste documento dizia "razaoParaRaio
 amplifica cerca de 8 vezes", que pendura na função um fator que é metade dela e metade da
 geometria do polígono. Quem ler isto daqui a um ano precisa dos dois números separados.
+
+**Armadilha de leitura, e ela é fácil de cair:** no exemplo acima aparecem dois "8" que não são
+a mesma coisa e coincidem só porque o passo escolhido foi 2%. O primeiro é *quanto o raio se
+moveu* — 8%, que é 2% × 4. O segundo é a *elasticidade da área* — 8, que é um fator e não uma
+porcentagem. Num passo de 3% o raio se move 12% e a elasticidade da área continua 8. Os dois
+números se separam assim que o exemplo muda; se ao reconferir a conta os dois "8" pararem de
+coincidir, isso é o esperado e não erro.
 
 Os dois parâmetros puxam em sentidos opostos, e a direção do segundo é contra-intuitiva:
 
@@ -60,7 +67,7 @@ Contra 13,9%, que é o quanto um ganho real de 2% em **todas** as seis medidas m
 corpo desproporcional. A ordem mexe 1,5 vez mais no resumo percebido do que meses de mudança no
 corpo.
 
-### Por que a amplificação pesa mais
+### Por que o parâmetro não declarado pesa mais
 
 A ordenação tem confundidor: um `proportion_axes.display_order` congelado a neutraliza na
 prática, e o comentário de coluna protege contra descongelar por engano. Ela é uma alavanca que
@@ -68,10 +75,18 @@ alguém precisa puxar.
 
 Amplificação não se neutraliza com nada. É sistemática, vale para uma pessoa só, atinge todo
 usuário toda vez, sobrevive a qualquer correção de ordem, e sobreviveria inclusive à troca do
-radar por outro gráfico se o mapeamento radial fosse reaproveitado. E o enunciado é o problema:
-um app cuja tese inteira é honestidade de medida exagerava a mudança em quatro vezes por uma
-escolha de desenho que nunca passou por decisão — a mesma família do que foi recusado no
-denominador do hexágono na ADR 0001, só que embutida numa constante em vez de num modelo.
+radar por outro gráfico se o mapeamento radial fosse reaproveitado.
+
+**E aqui é preciso ser exato sobre qual é o problema, porque a palavra errada leva ao conserto
+errado.** Amplificar não é defeito: grade que não amplifica não mostra nada, e uma faixa de 0 a 2
+com raio mínimo zero tornaria toda mudança real invisível. O gráfico não estava "exagerando" no
+sentido de estar errado — ele estava aplicando um fator que ninguém tinha escolhido e que
+ninguém sabia qual era. **O problema era não saber, não era o número.** Depois desta decisão o
+fator continua 4 e está escrito.
+
+Por isso o passo seguinte não é "baixar a amplificação". Baixar sem critério troca um número
+arbitrário por outro. O critério só pode vir de decidir o que a escala deve mostrar, e essa
+pergunta é prima da pergunta 2 abaixo, não da 1.
 
 ## Decisão
 
@@ -80,8 +95,9 @@ bordas da faixa, o raio mínimo e o limiar de estabilidade — entram em `produc
 natureza e motivo escritos, como o 28 e o 180. Os motivos dizem o que é verdade: escolhidas para
 a variação típica ocupar a maior parte da escala, sem fonte, arbitrárias dentro dessa intenção.
 
-**Os valores não mudam nesta decisão.** O que muda é deixarem de ser constante de código.
-Corrigir os valores é decisão separada e espera as perguntas abertas abaixo.
+**Os valores não mudam nesta decisão.** O que muda é deixarem de ser constante de código, e o
+fator que eles produzem passar a estar escrito e assertado. Corrigir os valores é decisão
+separada e espera as perguntas abertas abaixo.
 
 No domínio, os três números da escala viajam como um objeto único (`EscalaRadial`), sem valor
 padrão, pelo mesmo motivo de `limiarEstavel`: eles definem juntos o fator de amplificação, e
@@ -124,6 +140,11 @@ Se confirmada, as saídas, na ordem honesta:
 
 **Quem responde: o Roberto. O campo não responde isto, e um resultado bom na pergunta 1 não
 fecha a pergunta 2.**
+
+**A pergunta 2 decide primeiro; o card de compartilhamento é restringido por ela e não a
+restringe.** A ordem importa e é sutil: decidir o card antes responderia a pergunta 2 de fato,
+porque se o card for um hexágono, o app tem um hexágono — e aí a decisão sobre o gráfico central
+teria sido tomada por uma peça de marketing, sem ninguém notar que estava decidindo.
 
 O argumento registrado antes do campo, para que não pareça ter vindo do resultado: a força do
 radar é a gestalt, e aqui a gestalt **é** o resumo espúrio. Isso não é defeito corrigível — é o

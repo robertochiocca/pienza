@@ -19,11 +19,21 @@
  *   3. `critical` nao pode ser aceito. Se um dia so der para seguir aceitando um
  *      critical, isso tem que passar por mudar este arquivo, e nao por editar uma
  *      lista de dados.
+ *   4. A premissa da aceitacao e verificada, e nao so escrita. Uma entrada pode
+ *      declarar `reabrir_se`, com a mesma gramatica de condicao do gate de prazos;
+ *      quando a condicao se cumpre, o build reprova ate a entrada ser reescrita.
+ *
+ * A regra 4 nasceu de um caso concreto. Os dois advisories do image-size foram aceitos
+ * porque "este repositorio nao executa Metro", e a linha `quando_reabrir` dizia, em
+ * prosa, que a analise mudaria de dono no dia em que o Expo entrasse. O Expo entrou no
+ * ciclo 9, o Metro passou a rodar, e o gate nao teve como notar: prosa nao dispara. A
+ * premissa tinha vencido e a aceitacao continuava verde.
  */
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { avaliar as avaliarCondicao, lerManifestos } from './condicoes.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -64,7 +74,7 @@ export function advisoriesDo(relatorio) {
   return encontrados;
 }
 
-export function avaliar(relatorio, aceitas) {
+export function avaliar(relatorio, aceitas, manifestos = {}, raiz = ROOT) {
   const problemas = [];
   const encontrados = advisoriesDo(relatorio);
   const porId = new Map(aceitas.map((a) => [String(a.advisory).toUpperCase(), a]));
@@ -89,6 +99,19 @@ export function avaliar(relatorio, aceitas) {
       problemas.push(
         `${id} subiu de ${declarada} para ${severidade} desde que foi aceito. A aceitacao foi escrita sobre a severidade antiga.`,
       );
+      continue;
+    }
+
+    if (aceita.reabrir_se !== undefined) {
+      const resultado = avaliarCondicao(aceita.reabrir_se, manifestos, raiz);
+      if (!resultado.ok) {
+        problemas.push(`${id}: nao consegui avaliar reabrir_se — ${resultado.motivo}`);
+      } else if (resultado.satisfeita) {
+        problemas.push(
+          `${id}: a premissa da aceitacao venceu (${aceita.reabrir_se.condicao} ${aceita.reabrir_se.pacote ?? aceita.reabrir_se.caminho}). ` +
+            `Reescreva o motivo em scripts/auditoria-aceita.json.\n      O que mudou: ${aceita.reabrir_se.o_que_muda ?? '(nao escrito)'}`,
+        );
+      }
     }
   }
 
@@ -107,7 +130,7 @@ function autoTeste() {
   const falhas = [];
   return import('./fixtures/auditoria.fixtures.mjs').then(({ casos }) => {
     for (const caso of casos) {
-      const problemas = avaliar(caso.relatorio, caso.aceitas);
+      const problemas = avaliar(caso.relatorio, caso.aceitas, caso.manifestos ?? {}, ROOT);
       const passou = problemas.length === 0;
       const deveriaPassar = caso.esperado === 'passa';
 
@@ -151,7 +174,15 @@ function relatorioDoNpm() {
 const casos = await autoTeste();
 
 const lista = JSON.parse(readFileSync(new URL('./auditoria-aceita.json', import.meta.url), 'utf8'));
-const problemas = avaliar(relatorioDoNpm(), lista.aceitas ?? []);
+const aceitas = lista.aceitas ?? [];
+const problemas = avaliar(
+  relatorioDoNpm(),
+  aceitas,
+  lerManifestos(
+    aceitas.map((a) => a.reabrir_se).filter((c) => c !== undefined),
+    ROOT,
+  ),
+);
 
 if (problemas.length === 0) {
   const n = (lista.aceitas ?? []).length;

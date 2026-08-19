@@ -9,26 +9,60 @@
     "",
     "Uma entrada que nao casa mais com nenhum advisory tambem reprova o build. Isso e",
     "de proposito: excecao que sobrevive ao motivo e o modo como um repositorio",
-    "acumula permissao sem que ninguem tenha decidido nada."
+    "acumula permissao sem que ninguem tenha decidido nada.",
+    "",
+    "`reabrir_se` e a premissa da aceitacao escrita como condicao verificavel, e nao",
+    "como prosa. A versao anterior deste arquivo aceitava os advisories do image-size",
+    "porque 'este repositorio nao executa Metro', e anotava em prosa que a analise",
+    "mudaria de dono quando o Expo entrasse. O Expo entrou, o Metro passou a rodar, e o",
+    "gate nao teve como notar — a premissa venceu e a aceitacao continuou verde. Prosa",
+    "nao dispara."
   ],
   "aceitas": [
     {
       "advisory": "GHSA-w3rx-r6r6-pgpr",
       "pacote": "image-size",
       "severidade_maxima": "high",
-      "chega_por": "react-native > @react-native/community-cli-plugin > metro > image-size",
+      "chega_por": "expo > @expo/cli > @expo/metro > metro > image-size",
       "aceita_em": "2026-08-18",
-      "por_que_aceita": "Negacao de servico por laco infinito no parser de ICNS. Quem chama esse parser e o Metro, ao empacotar assets de imagem. Este repositorio nao executa Metro: o harness web e empacotado por esbuild e o CI nao roda nenhum bundler de React Native. O react-native esta instalado como devDependency exclusivamente pelos tipos de View, Text, TextInput, Pressable, ScrollView e StyleSheet, para que as telas sejam checadas contra a API do aparelho e nao contra a do react-native-web.",
-      "quando_reabrir": "Quando o Expo entrar e o Metro passar a rodar de verdade, sobre assets que a pessoa fornece. Ai o parser passa a ser executado e a analise muda de dono: deixa de ser 'nao rodamos isso' e vira 'de onde vem a imagem'."
+      "reavaliada_em": "2026-08-19",
+      "por_que_aceita": "Negacao de servico por laco infinito no parser de ICNS. Quem chama esse parser e o Metro, ao empacotar assets de imagem. Ate o ciclo 8 a aceitacao dizia que o Metro nao rodava aqui; com o Expo, ele roda. A analise mudou de dono, como estava previsto: a pergunta deixa de ser 'executamos isso?' e passa a ser 'de onde vem a imagem?'. Hoje a resposta e que nao ha imagem nenhuma — o app nao tem pasta de assets, nao tem icone e nao tem splash, e o unico bundle que existe e de JavaScript. Quando houver, serao arquivos que eu commitei, entao o pior caso e eu travar o meu proprio build.",
+      "quando_reabrir": "Quando o bundle passar a incluir imagem que nao venha deste repositorio — asset baixado em tempo de build, por exemplo. Ai o laco infinito deixa de ser auto-infligido.",
+      "reabrir_se": {
+        "condicao": "caminho_existe",
+        "caminho": "apps/mobile/assets",
+        "o_que_muda": "passou a existir pasta de assets: o Metro agora empacota imagem, e a premissa de que nao ha nenhuma caiu"
+      }
     },
     {
       "advisory": "GHSA-5p2g-fcmc-qvqq",
       "pacote": "image-size",
       "severidade_maxima": "high",
-      "chega_por": "react-native > @react-native/community-cli-plugin > metro > image-size",
+      "chega_por": "expo > @expo/cli > @expo/metro > metro > image-size",
       "aceita_em": "2026-08-18",
-      "por_que_aceita": "Mesmo pacote e mesma classe do anterior, nos parsers de JXL e HEIF. Nao ha versao corrigida publicada de image-size: o advisory cobre todas as versoes, entao nao existe atualizacao que resolva. O que o npm oferece como correcao e voltar o react-native para 0.72.17, uma major para tras, que troca um laco infinito num parser que nao executo por uma versao de framework tres anos mais velha.",
-      "quando_reabrir": "Igual ao anterior, e tambem no dia em que image-size publicar versao corrigida: nesse dia esta entrada para de casar e o gate reprova ate ela ser removida."
+      "reavaliada_em": "2026-08-19",
+      "por_que_aceita": "Mesmo pacote e mesma classe do anterior, nos parsers de JXL e HEIF, e mesma analise depois da entrada do Expo. Nao ha versao corrigida publicada de image-size: o advisory cobre todas. O que o npm oferece como correcao e voltar o expo de 57 para 53, uma major inteira para tras, o que troca um laco infinito num parser que so processa arquivo meu por um SDK quatro versoes mais velho.",
+      "quando_reabrir": "Igual ao anterior, e tambem no dia em que image-size publicar versao corrigida: nesse dia esta entrada para de casar e o gate reprova ate ela ser removida.",
+      "reabrir_se": {
+        "condicao": "caminho_existe",
+        "caminho": "apps/mobile/assets",
+        "o_que_muda": "passou a existir pasta de assets: o Metro agora empacota imagem, e a premissa de que nao ha nenhuma caiu"
+      }
+    },
+    {
+      "advisory": "GHSA-w5hq-g745-h8pq",
+      "pacote": "uuid",
+      "severidade_maxima": "moderate",
+      "chega_por": "expo > @expo/config > @expo/config-plugins > xcode > uuid@7",
+      "aceita_em": "2026-08-19",
+      "por_que_aceita": "Falta de checagem de limite de buffer nas versoes 3, 5 e 6 do uuid, e so quando quem chama passa um buffer proprio. Quem usa o uuid neste caminho e o pacote `xcode`, para gerar identificadores de projeto do Xcode durante `expo prebuild` — ferramenta de build que nunca vai para o aparelho e que nao passa buffer nenhum. Nao ha correcao aplicavel: o conserto esta em uuid 11 e o `xcode` pede uuid 7, entao forcar por override trocaria um advisory por um pacote quebrado.",
+      "quando_reabrir": "Se o uuid virar dependencia direta deste projeto, porque ai passamos a ser nos chamando a funcao, e ai o buffer pode ser nosso.",
+      "reabrir_se": {
+        "condicao": "pacote_presente",
+        "manifesto": "apps/mobile/package.json",
+        "pacote": "uuid",
+        "o_que_muda": "uuid virou dependencia direta: quem chama a funcao vulneravel passa a ser o nosso codigo"
+      }
     }
   ]
 }

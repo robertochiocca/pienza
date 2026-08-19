@@ -79,6 +79,26 @@ negativo, e eu quase o dei por verificado: eu tinha reintroduzido só metade do 
 tinha creditado a correção à linha errada. O gate estava certo, a minha reprodução é que estava
 pela metade. A regra pegou os dois erros — o do gate e o meu.
 
+**1.3.3 — Quando uma constante tem efeito colateral estrutural, asserte o efeito, não a
+constante.** A asserção existe para que remover a constante quebre algo, e não para documentar o
+valor. Asserção que repete o número passa a ser uma segunda cópia dele; asserção sobre o efeito
+é a única que descobre que a linha fazia dois trabalhos.
+
+O caso que originou a regra: `RAIO_MINIMO = 0,25` entrou no hexágono por motivo geométrico — sem
+ele um vértice no mínimo da faixa cai no centro e o polígono colapsa — e o comentário registrava
+esse motivo corretamente. Só que ele também era, de longe, o que mais segurava a amplificação do
+gráfico: sem ele o desenho exagerava 6,67 vezes em vez de 4. Alguém que "limpasse" a constante
+achando que era enfeite teria subido o exagero em 67% com o build verde e o comentário original
+ainda parecendo verdadeiro. O comentário não estava errado; ele só não era a verdade inteira
+sobre o que a linha faz.
+
+A asserção certa não é `expect(RAIO_MINIMO).toBe(0.25)` — essa não descobre nada. É
+`expect(elasticidade(escala)).toBeCloseTo(4)`, que quebra quando o efeito muda por qualquer
+caminho, inclusive por alguém mexer noutro número.
+
+Perguntar de todo número que governa comportamento: além do que o motivo escrito diz, **o que
+mais este valor decide?** Se a resposta for algo que ninguém asserta, o acidente já está armado.
+
 **1.4 — `permissions` declarado explicitamente em todo workflow.** Começa em `contents: read` e
 só sobe onde precisar, com justificativa.
 
@@ -225,6 +245,7 @@ continua sendo insuficiente sozinho — é por isso que existe a 1.3.1.
 - regra de mecânicas proibidas da seção 3
 - nenhuma dependência nova em `packages/domain` — o domínio é puro
 - gate novo com o negativo verificado e registrado, pela 1.3.2
+- constante com efeito colateral estrutural com o efeito assertado, pela 1.3.3
 
 **Gate humano — você para e me apresenta, sempre:**
 

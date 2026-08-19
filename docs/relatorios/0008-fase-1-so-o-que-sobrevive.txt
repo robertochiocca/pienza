@@ -1,0 +1,292 @@
+PIENZA — RELATORIO 0008
+Fase: 1   Ciclo: 9   Data: 2026-08-19
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na cadencia
+que escolher, e ve a propria mudanca comparada com ela mesma. Este ciclo nao toca no
+grafico. Classifica o que ja existe pelo risco de ser descartado, fecha a divida que
+tinha relogio, e traz as candidatas de fonte.
+
+
+A CLASSIFICACAO
+
+  Sobrevive a qualquer resposta da pergunta 2
+
+    packages/domain/src/units          100 linhas   unidades marcadas, conversao exata
+    packages/domain/src/session        277 linhas   sequencia guiada, resolucao, baseline
+    packages/domain/src/comparison     103 linhas   escolha do alvo de comparacao
+    apps/mobile/src/screens            406 linhas   entrada de medidas e revisao
+    apps/mobile/src/theme               95 linhas   paletas, escala, fontes
+    apps/mobile/src/teclado.ts          33 linhas   altura coberta pelo teclado
+    App.tsx                            172 linhas   entrada no aparelho
+    apps/mobile/web (menos o hexagono) 682 linhas   harness, aparelhos, dados
+    apps/mobile/scripts                340 linhas   build, servidor, capturas, gate de quadro
+    scripts/ (doze gates)                           nenhum depende do grafico
+    supabase/ (quinze migrations, 66 assercoes)     schema, RLS, proveniencia, travas
+
+    O schema inteiro sobrevive, e isso nao era obvio. proportion_ratios guarda a razao
+    crua sem ajuste de direcao, e proportion_axes e uma lista de seis eixos com rotulo:
+    pequenos multiplos precisam das duas coisas do mesmo jeito que um radar precisa.
+    O que e do radar naquele schema e a semantica de ordem circular, nao a estrutura.
+
+  Sobrevive so se o radar sobreviver
+
+    packages/domain/src/hexagon/plot.ts       242 linhas
+    packages/domain/src/hexagon/normalizar.ts  36 linhas
+    packages/domain/test/hexagon.test.ts      386 linhas
+    packages/domain/test/normalizar.test.ts   142 linhas
+    apps/mobile/web/HexagonoWeb.tsx           222 linhas
+    apps/mobile/web/campo.tsx                 152 linhas
+    product_settings, as quatro linhas hexagon_*
+    docs/decisoes/0013 na parte de ordenacao dos eixos
+    supabase/migrations/20260818210000, e as tres assercoes de escala em 020
+
+    Cerca de 1180 linhas, das quais 528 sao teste. Este e o tamanho do que pode ser
+    jogado fora, e ele cresceu 36% desde o ciclo 7.
+
+  Nao sei classificar, e esta e a parte que interessa
+
+    EstadoDoEixo e MotivoIndisponivel. O vocabulario de "este eixo nao tem dado, e o
+      motivo e este" sobrevive a qualquer saida — pequenos multiplos tambem precisam
+      dizer por que um deles esta vazio. Mas ele mora dentro de src/hexagon, entao
+      hoje ele esta do lado errado da fronteira. Se a pergunta 2 matar o radar, este
+      tipo tem que ser resgatado antes de a pasta ser apagada.
+
+    O tipo Direcao — 'fora' | 'dentro' | 'estavel'. O conceito sobrevive; o nome nao.
+      "Fora e dentro" e linguagem radial: em pequenos multiplos seria "subiu e desceu".
+      Nao sei se isso conta como sobreviver, e a diferenca importa porque um rename
+      atravessa o dominio, os testes e o banco.
+
+    hexagon_stable_threshold. O limiar abaixo do qual nao se carimba direcao sobrevive
+      a qualquer forma de grafico. Mas eu ja verifiquei, no ciclo 7, que o mesmo numero
+      significa coisas diferentes entre a variante crua e a normalizada — a panturrilha
+      a 0,998 vira estavel numa e vazada na outra. Se a saida escolhida mudar a base da
+      razao, o valor tem que ser reescolhido, e nao herdado.
+
+    A pagina de campo. Ela sobrevive ao ciclo em que for usada e nao ao seguinte. Nao
+      sei se isso e "sobrevive" ou "descartavel por construcao", e a resposta muda se
+      voce quiser rodar o mesmo teste depois de uma correcao.
+
+    Sua lista e a minha batem, com uma discordancia: voce pos "a pagina de campo" na
+    segunda categoria e eu acho que ela nao pertence a nenhuma das tres.
+
+
+FEITO
+
+  Expo. A tela roda em cima do React Native de verdade.
+      apps/mobile/App.tsx, app.json, babel.config.js, metro.config.js, e o hook
+      src/teclado.ts que traduz a diferenca entre iOS e Android num numero so.
+      Metro empacota o monorepo — 171 modulos, 366 KB — e a tela renderizada pelo build
+      do Expo e a mesma do harness, sem erro de pagina.
+      react-native sai de devDependency e vira dependencia, que era a condicao de saida
+      escrita em scripts/prazos.json.
+
+  AGENTS.md 1.3.3 — a regra do efeito colateral, nas suas palavras.
+      Asserte o efeito, nao a constante. A asserção existe para que remover a constante
+      quebre algo, e nao para documentar o valor.
+
+  scripts/condicoes.mjs — vocabulario de condicoes verificaveis, novo.
+      Compartilhado pelo gate de prazos e pelo gate de auditoria. Quatro condicoes:
+      pacote presente, pacote ausente, caminho existe, caminho ausente.
+
+  scripts/gate-auditoria.mjs — a premissa da aceitacao vira condicao.
+      `reabrir_se` substitui a prosa de `quando_reabrir`. Doze casos de auto-teste, e
+      as duas condicoes reais verificadas disparando contra a arvore de verdade.
+
+  Tres candidatas tipograficas OFL, rodando na tela de verdade.
+      O conjunto passa a ser parametro do tema, como a paleta ja era. Capturas nas duas
+      paletas, com o teclado aberto, e com valor de tres digitos.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 75 testes
+  cobertura de packages/domain             100%, piso em 100, 274 declaracoes
+  gate de mecanicas proibidas              verde, 30 casos
+  gate de nome antigo                      verde, 11 casos
+  gate de cores                            verde, 15 tokens, 1 matiz
+  gate de segredos                         verde, 10 casos
+  gate de papel da suite                   verde, 8 casos, 4 arquivos
+  gate de dominio puro                     verde
+  gate de prazos                           verde, 10 casos, 0 dividas
+  gate de auditoria                        verde, 12 casos, 3 advisories aceitos
+  gate de quadro do harness                verde, 9 casos, 27 capturas
+  suite de banco, modo shim                verde, 66 assercoes
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+  protecao de branch                       nao existe: acao de console pendente
+
+
+OS NUMEROS COM O MESMO ACIDENTE
+
+  Passei os outros pela lente. Dois tem, um nao tem, e dois eu confirmei que estao
+  limpos — registro os limpos tambem porque "eu olhei e nao achei" e informacao.
+
+  comparison_min_days = 28. TEM.
+    O motivo escrito fala de variacao de curto prazo nao dominar a leitura. O segundo
+    trabalho, que ninguem escreveu e ninguem asserta: ele decide com que frequencia a
+    comparacao degrada para o baseline. Medi com uma pessoa de dez check-ins semanais —
+    em 28 o alvo e o check-in de 28 dias atras; em 71 todo mundo cai no baseline. Na
+    pratica isso atinge principalmente quem comecou ha pouco: com tres semanas de uso,
+    28 ja significa "sempre baseline". Subir esse numero migra silenciosamente uma
+    coorte inteira de "comparado com 33 dias atras" para "comparado com o baseline".
+
+  structural_remeasure_days = 180. TEM, em parte.
+    O motivo ja menciona a ancora envelhecer, entao metade esta escrita. O que nao
+    esta: ele decide a mistura de proveniencia de um check-in — quantas linhas saem
+    `kept` e quantas saem `typed`. Proveniencia e conceito de primeira classe aqui
+    (ADR 0007) e a distribuicao dela e governada por um numero que nao diz que faz isso.
+
+  hexagon_stable_threshold = 0,01. TEM, mas o efeito e do radar.
+    Ja descrito na secao de classificacao. Fica com a categoria 2.
+
+  measurement_keys.min_value e max_value. NAO TEM — conferi.
+    Suspeitei que fossem tranca de porta: alguem cujo corpo cai fora da faixa nao
+    consegue registrar, e o erro parece validacao e nao "nao pensamos em voce". Fui
+    olhar os dezessete pares. Cintura ate 250, peso de 20 a 400, coxa ate 120,
+    envergadura ate 280. Sao largos o bastante para que a tranca nao encoste em
+    ninguem. Nao ha achado aqui.
+
+  FOLGA = 1 no gate de quadro. NAO TEM — conferi.
+    O efeito e tolerancia de arredondamento, e ele esta cercado pelos dois lados nas
+    fixtures: meio pixel passa, um pixel e meio reprova. Aumentar a folga quebra o
+    auto-teste.
+
+
+DECIDIDO
+
+  A premissa de uma aceitacao de advisory e condicao, e nao prosa.
+    Ver DEFEITOS. A gramatica e a mesma do gate de prazos, num modulo so, porque duas
+    copias da pergunta "este pacote esta instalado?" divergem.
+
+  O conjunto tipografico e parametro do tema, e `generico` continua sendo o padrao.
+    Enquanto ninguem escolher, o app usa o que o aparelho tem. Nenhuma captura passa
+    por face escolhida sem alguem ter escolhido.
+
+  O teclado vira um numero so tambem no aparelho.
+    src/teclado.ts e o unico lugar do app que sabe que iOS e Android tratam teclado de
+    forma diferente. No Android, com softwareKeyboardLayoutMode: resize, devolve 0
+    porque a janela ja encolheu; no iOS devolve a altura. O layout nao tem ramo.
+
+
+DEFEITOS ENCONTRADOS
+
+  A premissa das minhas aceitacoes de advisory tinha vencido, e o gate nao tinha como
+  notar.
+    Os dois advisories do image-size estavam aceitos porque "este repositorio nao
+    executa Metro". Com o Expo, o Metro executa. A aceitacao continuava verde sobre um
+    motivo que tinha deixado de ser verdade no mesmo commit.
+    O mais desconfortavel: eu tinha escrito, no proprio arquivo, "quando o Expo entrar e
+    o Metro passar a rodar de verdade, a analise muda de dono". Eu previ o momento e
+    escrevi em prosa. Prosa nao dispara. Foi um gate que eu construi no ciclo 6 falhando
+    por exatamente o motivo que a sua regra 1.3.3 descreve, um nivel acima: o campo
+    documentava a premissa e nao verificava nada.
+    Corrigido com `reabrir_se`. A nova analise esta escrita: o Metro roda, mas hoje nao
+    ha imagem nenhuma no bundle — nao existe pasta de assets — e quando existir serao
+    arquivos meus. A condicao mecanica e a existencia de apps/mobile/assets. Verificado
+    disparando: criei a pasta, o gate reprovou, apaguei.
+
+  npm instalou react-native 0.87 durante quatro tentativas enquanto o package.json
+  pedia 0.86.2.
+    Um `@react-native/virtualized-lists` antigo sobrara na raiz exigindo 0.87 como par,
+    e o npm o satisfazia instalando a versao errada ao lado da certa. O Metro resolvia a
+    da raiz e quebrava em `rn-get-polyfills`, que nao existe mais em 0.87.
+    So saiu apagando node_modules e o lockfile. Registro porque a mensagem de erro
+    apontava para um subpath de modulo e nao tinha nada a ver com versao.
+
+  Nenhum defeito de produto. Ciclo de infraestrutura.
+
+
+AS TRES CANDIDATAS
+
+  Todas OFL, baixadas como arquivo e servidas localmente — o harness roda sem rede, e o
+  que vai para o aparelho tambem e arquivo.
+
+    A   Instrument Serif / Inter / JetBrains Mono
+        Serifada de display, contraste alto, desenhada para corpo grande. E a mais
+        estreita das tres: com 188,8 na tela sobram 93 pontos de folga.
+
+    B   Fraunces / Public Sans / IBM Plex Mono
+        Mais personalidade e eixo variavel. Folga de 20 pontos com 188,8.
+
+    C   Newsreader / IBM Plex Sans / Space Mono
+        Editorial, mais quieta. Parece a mais contida das tres e e a mais larga:
+        14 pontos de folga com 188,8. Contraria a impressao visual, e por isso medi.
+
+  Nenhuma das tres transborda — o gate de quadro aprovou as vinte e sete capturas — mas
+  a margem entre elas e de quase sete vezes. Se a escolha for por aparencia, vale saber
+  que B e C ficam a menos de 20 pontos da borda no valor mais largo que o vocabulario
+  permite, e que qualquer aumento futuro do corpo do numero atinge as duas primeiro.
+
+
+DISCORDANCIAS
+
+  A pagina de campo nao pertence a nenhuma das tres categorias, e isso e um buraco na
+  classificacao e nao um detalhe.
+    Ela nao sobrevive a tudo, nao depende do radar sobreviver, e nao e "nao sei
+    classificar": ela e instrumento de medicao. O valor dela e a resposta que ela
+    produz, e ela pode ser jogada fora no dia seguinte ao teste sem nenhuma perda —
+    inclusive se o radar sobreviver.
+    Proponho uma quarta categoria para o proximo inventario: descartavel por
+    construcao, que e trabalho cujo produto e a informacao e nao o codigo. O harness
+    inteiro quase cai nela, e o que o salva e ele ser usado toda vez que a tela muda.
+
+  Voce escreveu que o Expo destrava o que esta marcado como nao verificavel em
+  aparelho. Ele destrava para voce, nao para mim, e a distincao muda quem faz o que.
+    Nao ha aparelho aqui. O que eu consegui verificar foi que o Metro empacota e que a
+    tela renderiza pelo build do Expo — o que ja pegou coisa, porque o bundle so passou
+    depois de alinhar versao de react-native. O que continua sem verificacao e tudo que
+    depende de teclado nativo, cursor e toque: o traco de campo vazio, a altura real do
+    teclado em cada aparelho, e se a tecla de retorno avanca no Android.
+    Isso e uma tarde sua com `npx expo start` e o Expo Go no telefone, e o roteiro cabe
+    em cinco minutos. Se voce for a campo mostrar o hexagono de qualquer jeito, os dois
+    testes cabem na mesma saida.
+
+  Sobre eu ter mexido nas duas telas para parametrizar a fonte.
+    Voce pediu candidatas e capturas. Para as capturas serem da tela de verdade e nao
+    de uma maquete com a face aplicada por fora, o tema precisou virar parametro, o que
+    tocou MeasurementEntry e MeasurementReview. E mudanca estrutural pequena e reversivel,
+    e ela vai ser necessaria de qualquer jeito quando voce escolher — mas foi decisao
+    minha dentro de um pedido que dizia "traga capturas".
+    A alternativa era aplicar a fonte por CSS so na pagina de captura, o que teria
+    produzido imagens bonitas de uma tela que nao existe. Preferi mexer no codigo.
+
+  O item que mais me preocupa nao esta na sua lista e nao e trabalho: e o tamanho da
+  categoria 2 crescendo enquanto a pergunta 2 espera.
+    Ela era 870 linhas no ciclo 7 e e 1180 agora, e esse crescimento veio quase todo de
+    trabalho que voce pediu e que eu concordei em fazer — a variante normalizada, os
+    testes de elasticidade, a escala em product_settings. Nenhum deles foi errado. Mas o
+    efeito composto e real e este ciclo nao o interrompeu, so parou de piorar.
+    Nao tenho proposta melhor que a sua: ir a campo. Registro que a regra deste ciclo
+    funcionou — nada de categoria 2 entrou — e que ela nao reduz o que ja esta la.
+
+
+EM ABERTO
+
+  O campo. As quinze frases. hexagono.html inalterado desde o ciclo 7.
+
+  Pergunta 1: leitura. Pergunta 2: proposito, com prazo a definir depois do campo.
+
+  Escolha da fonte. Tres conjuntos prontos, capturas em docs/capturas/0008.
+
+  Verificacao em aparelho: traco de campo vazio, altura de teclado, tecla de retorno no
+  Android. Precisa de `npx expo start` e um telefone.
+
+  A duplicacao dos numeros de produto entre banco e harness. Agora ela e tripla: banco,
+  harness e App.tsx. A saida real e o app buscar de product_settings.
+
+  Ligar a protecao de main no console. ADR 0012 segue descrevendo regra nao aplicada.
+
+  Supabase: nome de exibicao e Private Vulnerability Reporting.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  Nada. Os cinco itens da sua ordem estao fechados.
+
+  O ciclo terminaria curto se a categoria 1 estivesse vazia, como voce escreveu. Ela nao
+  estava: o Expo sozinho justificava o ciclo, e ele fechou a unica divida com relogio.

@@ -20,15 +20,45 @@ export function cor(p: Paleta, token: string): string {
 }
 
 /**
- * Famílias genéricas por enquanto. As faces definitivas — serifada para o numero,
- * mono para rotulo — entram como arquivo de fonte junto com o Expo; ate la o
- * registro tipografico ja e o certo, so nao e a face escolhida.
+ * Conjuntos tipograficos candidatos.
+ *
+ * O registro — serifada para o numero, sem serifa para interface, mono para rotulo —
+ * esta decidido desde o ciclo 4. O que nao esta decidida e a face, e por isso a escolha
+ * e parametro e nao constante: as tres candidatas rodam na mesma tela, com o mesmo
+ * teclado, para serem comparadas no estado em que a tela e vista.
+ *
+ * Todas as faces sao OFL, que e a licenca que permite embarcar em app sem negociacao.
+ * `generico` continua existindo e continua sendo o padrao: enquanto ninguem escolher,
+ * o app usa o que o aparelho tem, e nenhuma captura passa por face escolhida sem
+ * alguem ter escolhido.
  */
-export const FAMILIA = {
-  numero: 'serif',
-  interface: 'system-ui',
-  mono: 'monospace',
-} as const;
+export type NomeDeFonte = 'generico' | 'a' | 'b' | 'c';
+
+export interface Familia {
+  readonly numero: string;
+  readonly interface: string;
+  readonly mono: string;
+}
+
+const FONTES: Readonly<Record<NomeDeFonte, Familia>> = {
+  generico: { numero: 'serif', interface: 'system-ui', mono: 'monospace' },
+  // A — Instrument Serif no numero: serifada de display, contraste alto, feita para
+  // corpo grande. Inter na interface e JetBrains Mono no rotulo.
+  a: { numero: 'Instrument Serif', interface: 'Inter', mono: 'JetBrains Mono' },
+  // B — Fraunces no numero: serifada com mais personalidade e eixo variavel.
+  // Public Sans e IBM Plex Mono ao redor.
+  b: { numero: 'Fraunces', interface: 'Public Sans', mono: 'IBM Plex Mono' },
+  // C — Newsreader no numero: serifada editorial, mais quieta que as outras duas.
+  // IBM Plex Sans e Space Mono ao redor.
+  c: { numero: 'Newsreader', interface: 'IBM Plex Sans', mono: 'Space Mono' },
+};
+
+export function familia(nome: NomeDeFonte): Familia {
+  return FONTES[nome];
+}
+
+/** O conjunto em vigor enquanto ninguem escolheu. */
+export const FAMILIA = FONTES.generico;
 
 /** Escala 11 / 15 / 78, mantida em proporcao da largura da tela. */
 export function escala(largura: number) {

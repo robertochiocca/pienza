@@ -2,17 +2,15 @@
   "expo": {
     "name": "Pienza",
     "slug": "pienza",
-    "scheme": "pienza",
     "version": "0.0.0",
     "orientation": "portrait",
+    "scheme": "pienza",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "bundleIdentifier": "com.robertochiocca.pienza",
-      "supportsTablet": false
-    },
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": false },
     "android": {
-      "package": "com.robertochiocca.pienza"
+      "softwareKeyboardLayoutMode": "resize"
     },
-    "privacy": "unlisted"
+    "web": { "bundler": "metro" }
   }
 }
