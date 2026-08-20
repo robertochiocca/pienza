@@ -1,0 +1,224 @@
+PIENZA — RELATORIO 0009
+Fase: 1   Ciclo: 10   Data: 2026-08-19
+
+Contexto para quem le fora do repositorio: o Pienza e um app de acompanhamento de
+composicao e proporcao corporal. A pessoa registra medidas, faz check-ins na cadencia
+que escolher, e ve a propria mudanca comparada com ela mesma. Ciclo curto de proposito:
+varredura das premissas escritas em prosa, uma conversao, uma trava de dependencia, uma
+categoria nova e as capturas de fonte. Nada de grafico.
+
+
+FEITO
+
+  supabase/tests/020 — a premissa da classificacao estrutural vira arame.
+      Qualquer tabela nova que referencie measurement_keys reprova. Hoje passa por
+      vacuidade — as duas que existem estao nomeadas na assercao. O negativo mora dentro
+      da suite: uma segunda assercao cria uma tabela com a forma de modelo de referencia
+      e confere que o arame a ve. 21 assercoes no arquivo, 68 na suite.
+
+  package.json — overrides fixando react-native em 0.86.2.
+      Reproduzi as duas pontas antes de fechar: instalando o culpado exato do ciclo 9,
+      sem overrides a arvore fica com 0.87.0 e 0.86.2 lado a lado; com overrides, so
+      0.86.2. O motivo mora em AGENTS.md 1.2.1, porque JSON nao aceita comentario.
+
+  docs/decisoes/0014-categorias-de-descarte.md
+      A quarta categoria, com a consequencia sobre o piso de cobertura.
+
+  docs/decisoes/0013 — a atribuicao do crescimento.
+      Fica escrito que as 310 linhas a mais na categoria 2 entre os ciclos 7 e 9 vieram
+      de pedido seu e nao de deriva minha.
+
+  apps/mobile/src/ajustes.ts — a copia do 180 passa a ser uma so.
+      App.tsx e o harness liam o mesmo numero de dois lugares. Ver DECIDIDO para o que
+      nao foi feito e por que.
+
+  docs/capturas/0009 — 27 capturas, incluindo as tres candidatas nas duas paletas.
+
+
+GATE
+
+  format, lint, typecheck                  verde
+  testes do dominio                        verde, 75 testes
+  cobertura de packages/domain             100%, piso em 100, 274 declaracoes
+  gate de mecanicas proibidas              verde, 30 casos
+  gate de nome antigo                      verde, 11 casos
+  gate de cores                            verde, 15 tokens, 1 matiz
+  gate de segredos                         verde, 10 casos
+  gate de papel da suite                   verde, 8 casos, 4 arquivos
+  gate de dominio puro                     verde
+  gate de prazos                           verde, 10 casos, 0 dividas
+  gate de auditoria                        verde, 12 casos, 3 advisories aceitos
+  gate de quadro do harness                verde, 9 casos, 27 capturas
+  suite de banco, modo shim                verde, 68 assercoes
+  bundle do Expo                           verde, 172 modulos
+  suite de banco, modo supabase            nao executada, sem Docker no ambiente
+  protecao de branch                       nao existe: acao de console pendente
+
+
+A VARREDURA DE PREMISSAS
+
+  Dezesseis lugares com forma de premissa. Quatro ja estao mecanizados, um foi
+  convertido agora, cinco dao para converter, seis nao dao.
+
+  CONVERTIDO NESTE CICLO
+
+    Classificacao estrutural x modelo de referencia (relatorio 0002).
+      Sua analise da consequencia esta certa e e pior do que eu tinha registrado:
+      Reeves ancora braco no punho, panturrilha no tornozelo, coxa no joelho e pescoco
+      na cabeca; os quatro sao `structural`, entao so voltam a ser propostos a cada 180
+      dias, e denominador que nunca recebe `typed` deixa o eixo em `baseline_not_typed`
+      para sempre. Nada quebra, quatro eixos nunca acendem.
+      Nao da para checar ancora de um modelo que ainda nao existe, entao o que entrou e
+      um arame e nao uma trava: qualquer tabela nova referenciando measurement_keys
+      reprova, com a pergunta escrita ao lado. Cobre de brinde uma segunda premissa da
+      mesma familia — a linha em razoes_de_proporcao sobre `denominator_kind` fazer
+      sentido "no dia em que o modelo de referencia externo existir".
+
+  JA ESTAVAM MECANIZADAS, e registro porque a varredura tinha que confirmar
+
+    Matiz unico das paletas. O relatorio 0003 diz "isso so vale enquanto for verdade, e
+      verdade sobre cor envelhece a cada ajuste de gosto. Por isso e contagem no build".
+      Confirmado: o gate de cores conta matizes.
+    Mecanicas proibidas. A ADR 0002 diz explicitamente que a recusa deixa de depender de
+      eu lembrar quando vira gate. Confirmado.
+    Valor clinico exige fonte. Restricao de banco, nao prosa.
+    Premissas das aceitacoes de advisory. `reabrir_se`, feito no ciclo 9.
+
+  DA PARA CONVERTER, e nao converti
+
+    Marcadores de superusuario na suite. DA, e o mecanismo e mais interessante do que eu
+      esperava quando voce perguntou. A premissa de cada marcador e "esta assercao
+      precisa mesmo de privilegio". Isso e testavel por mutacao: rodar a assercao como
+      `authenticated` e exigir que ela falhe. Se passar como authenticated, o marcador
+      e desnecessario e a premissa e falsa.
+      Sao sete marcadores hoje. Custo: precisa isolar assercao por assercao, o que a
+      suite atual nao faz — ela roda arquivos inteiros em transacao. E meio ciclo.
+    Cobertura declarada total/parcial/nenhum na ADR 0002. DA, parcialmente: da para
+      exigir que todo item marcado `total` tenha ao menos uma fixture positiva no gate
+      correspondente. Nao cobre a diferenca entre `parcial` e `nenhum`, que continua
+      sendo julgamento.
+    "Nao existe funcionalidade que preencha consent_external_processing_at". DA e e
+      barato: uma varredura de codigo que reprova se alguem escrever naquela coluna.
+      Deixei porque a consequencia de vencer em silencio e menor que a da estrutural, e
+      voce pediu uma so.
+    Protecao de branch. DA por API do GitHub, e com ressalva: faria o build depender da
+      disponibilidade da API, e um gate que reprova por rede fora do ar e desligado na
+      terceira falha falsa.
+    A duplicacao dos numeros de produto entre banco e app. DA como comparacao entre o
+      literal e a migration, mas a saida certa e o app ler do banco, e ai o gate some.
+
+  NAO DA
+
+    Os campos `motivo` de product_settings. A premissa e uma afirmacao sobre o mundo —
+      "este numero foi escolhido para X" — e nao ha nada no repositorio que possa
+      contradize-la. Um gate aqui so poderia checar forma, e checar forma de
+      justificativa produz justificativa com forma certa. A protecao real e a revisao.
+    "Revisar quando houver gente medindo". Nao ha sinal no repositorio de que ha gente
+      medindo. Isso e evento do mundo.
+    "No dia em que isso nao bastar, e ADR" (0010). Nao ha condicao: e um juizo estetico.
+    Numeros de referencia de proporcao ainda inexistentes. Nao ha o que condicionar.
+    A frase de que o harness e fiel ao aparelho. Essa e a mais desconfortavel da lista:
+      nada no repositorio pode verifica-la, so um aparelho.
+    Reeves, citacao pendente. Nao e premissa, e lacuna.
+
+
+DECIDIDO
+
+  A quarta categoria e o piso de cobertura.
+    Escrita na ADR 0014. A consequencia que voce antecipou nao exige acao: o piso cobre
+    so `packages/domain/src`, e a categoria 4 inteira mora fora dele. A pagina de campo
+    nunca esteve na metrica. A regra fica escrita para o caso que ainda nao aconteceu —
+    se codigo de categoria 4 precisar morar no dominio, ele sai do `include` da
+    cobertura nominalmente, com motivo, e nao baixando o piso.
+    Nao excluir nada agora tambem e decisao: exclusao preventiva de algo que a metrica
+    nao mede seria configuracao sem defeito por tras, contra a 1.1.
+
+  Da duplicacao tripla, tirei um terco e parei ali.
+    O que era barato e de categoria 1 era exatamente um numero: o 180, lido de dois
+    lugares no app. Virou src/ajustes.ts. Sobram banco e app, que e a duplicacao de
+    verdade.
+    Nao mexi nos numeros da escala radial, que tambem estao duplicados, porque eles sao
+    categoria 2 e voce disse para nao entrar nela por nenhum motivo. Mexer neles seria
+    tocar codigo que pode ser descartado, para arrumar uma duplicacao que sumiria junto.
+
+
+DEFEITOS ENCONTRADOS
+
+  Nenhum. Ciclo de varredura e de texto, com uma unica mudanca de comportamento — o
+  arame na suite — e ela nasceu com o negativo verificado dentro da propria suite.
+
+  Registro uma nao-descoberta, porque ela custou tempo e o resultado e informacao: fui
+  procurar se a pagina de campo estava inflando a cobertura e ela nunca esteve na
+  metrica. O piso so olha packages/domain/src desde que foi criado. A preocupacao que
+  motivou o item 3 da sua ordem nao existia.
+
+
+DISCORDANCIAS
+
+  A conversao que eu fiz e mais fraca do que a sua descricao pedia, e a diferenca
+  importa.
+    Voce escreveu a condicao como "nenhuma chave `structural` pode ser ancora de modelo
+    de referencia ativo". O que eu consegui foi "nenhuma tabela nova referencia
+    measurement_keys". A primeira e uma trava sobre o conteudo; a segunda e um alarme
+    sobre a forma.
+    O motivo e que a trava certa precisa de um lugar onde ancoras sejam declaradas, e
+    esse lugar e schema da Fase 3. Cria-lo agora seria eu desenhar a Fase 3 dentro de um
+    ciclo que voce mandou ser curto.
+    A consequencia pratica: o meu arame dispara tambem para tabela inocente, e limpar
+    isso e acrescentar um par nome-coluna a uma lista. Se alguem limpar sem ler o
+    comentario ao lado, a premissa volta a nao ter guarda. Prefiro isso a nao ter
+    alarme nenhum, mas nao e o que voce pediu e voce devia saber a diferenca.
+
+  Sobre nao ter recebido as capturas: elas foram enviadas e eu nao tenho como confirmar
+  entrega.
+    Reenvio com este relatorio. Registro porque se sumirem de novo o problema nao e o
+    ciclo, e o canal, e ai a saida e eu publicar as imagens de outro jeito.
+
+  Sua inclinacao por A tem um argumento a mais do que voce usou, e ele e mensuravel.
+    Voce ligou os 93 pontos de folga a alavanca de subir o corpo do numero. Medi ate
+    onde cada candidata deixa subir, com o valor mais largo que o vocabulario permite:
+
+      generico   corpo pode ir de 26,9% ate 31,7% da largura   folga de 18%
+      A          ate 41,0%                                     folga de 52%
+      B          ate 29,1%                                     folga de  8%
+      C          ate 28,4%                                     folga de  5%
+
+    Escrevi estes numeros a mao primeiro e errei os tres — tinha posto 35, 28,5 e 28.
+    Medi depois, e o resultado e mais forte do que o meu palpite: B e C nao consomem
+    "quase" a alavanca, elas deixam 8% e 5%.
+    E ha uma consequencia que nem voce nem eu tinhamos notado: as duas ficam com menos
+    folga do que o placeholder generico tem hoje. Escolher B ou C nao e so fechar a
+    porta do ajuste futuro — e fechar mais do que ela ja esta.
+    Nao e argumento estetico e nao substitui o seu gate visual.
+
+
+EM ABERTO
+
+  O campo. As quinze frases. hexagono.html inalterado desde o ciclo 7.
+
+  Escolha da fonte. Capturas reenviadas.
+
+  Verificacao em aparelho: traco de campo vazio, altura de teclado, tecla de retorno no
+  Android. `npx expo start` e o Expo Go.
+
+  A duplicacao dos numeros de produto entre banco e app. Reduzida de tripla para dupla.
+  A saida real e o app ler de product_settings, e isso e ciclo proprio.
+
+  Cinco premissas que dao para converter e nao foram, listadas acima com o custo.
+
+  Ligar a protecao de main no console. ADR 0012 segue descrevendo regra nao aplicada.
+
+  Supabase: nome de exibicao e Private Vulnerability Reporting.
+
+  Versao da CLI do Supabase segue em 2.114.0 sem nunca ter sido executada.
+
+  Citacao de Reeves segue pendente.
+
+
+BLOQUEADO EM MIM
+
+  Nada. Os cinco itens da sua ordem estao fechados, incluindo o quinto, que era
+  condicional.
+
+  Parei aqui. A categoria 1 tem tres coisas dentro e nenhuma e minha: a escolha da
+  fonte, o teste de campo e a verificacao em aparelho. As tres sao suas.

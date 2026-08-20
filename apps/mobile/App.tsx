@@ -14,6 +14,7 @@ import { MeasurementEntry } from './src/screens/MeasurementEntry';
 import { MeasurementReview, type LinhaDeRevisao } from './src/screens/MeasurementReview';
 import { cor, paleta, type NomeDePaleta } from './src/theme';
 import { useAlturaCobertaPorTeclado } from './src/teclado';
+import { DIAS_PARA_REMEDIR_ESTRUTURAL } from './src/ajustes';
 import { ANTERIORES, VOCABULARIO } from './web/dados';
 
 /**
@@ -25,9 +26,9 @@ import { ANTERIORES, VOCABULARIO } from './web/dados';
  * grava nada. Isto e a mesma sequencia, no aparelho.
  *
  * Os numeros de produto continuam sendo copia de product_settings, como no harness,
- * pelo mesmo motivo: ainda nao ha conexao com o banco.
+ * pelo mesmo motivo: ainda nao ha conexao com o banco. A copia mora em src/ajustes.ts,
+ * uma so para o app inteiro.
  */
-const STRUCTURAL_REMEASURE_DAYS = 180;
 
 export default function App() {
   const esquema = useColorScheme();
@@ -48,7 +49,7 @@ export default function App() {
     vocabulary: VOCABULARIO,
     previous: ANTERIORES,
     now: new Date(),
-    structuralRemeasureAfterDays: STRUCTURAL_REMEASURE_DAYS,
+    structuralRemeasureAfterDays: DIAS_PARA_REMEDIR_ESTRUTURAL,
     isBaseline: false,
   });
 

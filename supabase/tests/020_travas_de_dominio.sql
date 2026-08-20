@@ -6,7 +6,7 @@
 -- marcado com o motivo — ver scripts/gate-suite-papel.mjs.
 
 begin;
-select plan(19);
+select plan(21);
 
 -- Fixtures como superusuario: auth.users nao e escrita pelo cliente.
 insert into auth.users (id, email) values
@@ -226,6 +226,56 @@ select is(
     where key in ('hexagon_scale_ratio_min', 'hexagon_scale_ratio_max')),
   2.00::numeric,
   'a faixa de razao e simetrica em torno de 1');
+
+-- Premissa da classificacao estrutural, do relatorio 0002.
+--
+-- O texto de la diz: a regra de que medida estrutural nao vira passo toda semana "deixa
+-- de ser verdade se o modo de referencia externa da Fase 3 passar a ancorar eixo em
+-- punho ou tornozelo, e nesse dia a regra precisa ser reexaminada". Isso estava escrito
+-- em prosa, e prosa nao dispara.
+--
+-- A consequencia de vencer em silencio e pior que a de um advisory. Reeves ancora braco
+-- no punho, panturrilha no tornozelo, coxa no joelho e pescoco na cabeca. Os quatro sao
+-- `structural`, entao so voltam a ser propostos a cada 180 dias — e um denominador que
+-- nunca recebe `typed` deixa o eixo em `baseline_not_typed` para sempre. Nada quebra.
+-- Quatro eixos simplesmente nunca acendem, e quem for diagnosticar comeca pela tela.
+--
+-- Nao da para checar ancora de um modelo que ainda nao existe, entao isto e um arame e
+-- nao uma trava: qualquer tabela nova que referencie measurement_keys reprova aqui. Se
+-- ela for o modelo de referencia, a pergunta certa e feita no momento certo; se nao for,
+-- some com ela desta lista, com o motivo escrito ao lado.
+-- papel: superusuario porque le pg_constraint e pg_attribute do catalogo
+set local role postgres;
+
+select is_empty(
+  $$select c.conrelid::regclass::text as tabela, a.attname as coluna
+      from pg_constraint c
+      join lateral unnest(c.conkey) k(attnum) on true
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+     where c.contype = 'f' and c.confrelid = 'measurement_keys'::regclass
+       and (c.conrelid::regclass::text, a.attname) not in
+           (('measurement_values', 'key'), ('proportion_axes', 'measurement_key'))$$,
+  'nenhuma tabela nova ancora em measurement_keys sem passar pela regra da classificacao estrutural');
+
+-- O arame acima passa hoje por vacuidade, e assercao que nunca disparou e
+-- indistinguivel de assercao quebrada. Esta segunda prova que ele detecta: cria uma
+-- tabela com a forma de um modelo de referencia e confere que ela e vista.
+create table _modelo_de_referencia_falso (
+  axis_key   text primary key,
+  anchor_key text not null references measurement_keys (key)
+);
+
+select isnt_empty(
+  $$select c.conrelid::regclass::text as tabela, a.attname as coluna
+      from pg_constraint c
+      join lateral unnest(c.conkey) k(attnum) on true
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+     where c.contype = 'f' and c.confrelid = 'measurement_keys'::regclass
+       and (c.conrelid::regclass::text, a.attname) not in
+           (('measurement_values', 'key'), ('proportion_axes', 'measurement_key'))$$,
+  'o arame ve uma tabela nova ancorada em measurement_keys');
+
+drop table _modelo_de_referencia_falso;
 
 reset role;
 

@@ -160,6 +160,14 @@ resolvido por herança.**
 
 ## Consequências
 
+**O que depende de o radar sobreviver cresceu 36% entre os ciclos 7 e 9 — de cerca de 870 para
+1.180 linhas — e esse crescimento veio de pedido meu, e não de deriva de quem implementou.** A
+variante normalizada pela média, os testes de elasticidade e a migração da escala para
+`product_settings` foram os três itens; cada um se defendia isoladamente, e juntos aumentaram em
+mais de um terço a pilha do descartável enquanto a pergunta que a decide esperava. Fica escrito
+aqui para o histórico não sugerir o contrário. A classificação por risco de descarte que saiu
+disso está na ADR 0014.
+
 Cinco pessoas dizendo que entenderam o desenho não respondem se o desenho deveria existir. O
 risco concreto deste ciclo é a pergunta 2 ser dada como fechada por um teste que não a mediu, e é
 por isso que ela está escrita aqui com dono nomeado.

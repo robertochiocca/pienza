@@ -46,6 +46,14 @@ nunca por tag. Linter, type checker e formatter com versão exata. No outro repo
 `pip install mypy` sem versão trouxe uma major sozinha e quebrou o build. Ferramenta que
 decide o build não muda sem alguém decidir.
 
+**1.2.1 — Dependência que o bundler resolve fica fixada por `overrides`, não só pela faixa.**
+O `package.json` da raiz fixa `react-native` na versão exata que o Expo pede. O motivo mora aqui
+porque JSON não aceita comentário, e a regra 1.1 continua valendo: um `@react-native/virtualized-lists`
+obsoleto exigindo `^0.87` como par fez o npm instalar 0.87 **ao lado** da 0.86.2 pedida, o Metro
+resolveu a da raiz, e o build quebrou em `Package subpath './rn-get-polyfills' is not defined` —
+mensagem que não menciona versão nenhuma e custou quatro tentativas. Reproduzi as duas pontas: com
+`overrides`, uma versão na árvore; sem, duas.
+
 **1.3 — O gate falha o build, não emite aviso.** Cobertura abaixo do piso reprova. Auditoria de
 dependência com CVE reprova. Tipo quebrado reprova. Formatação fora do padrão reprova. Aviso que
 não reprova é aviso que ninguém lê.

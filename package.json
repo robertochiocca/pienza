@@ -30,6 +30,9 @@
     "gate:papel": "node scripts/gate-suite-papel.mjs",
     "gate:prazos": "node scripts/gate-prazos.mjs"
   },
+  "overrides": {
+    "react-native": "0.86.2"
+  },
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "@vitest/coverage-v8": "3.2.7",

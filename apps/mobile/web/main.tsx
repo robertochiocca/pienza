@@ -4,6 +4,7 @@ import { buildSessionPlan, type Answer, type EixoDeEntrada } from '@pienza/domai
 import { MeasurementEntry } from '../src/screens/MeasurementEntry';
 import { MeasurementReview, type LinhaDeRevisao } from '../src/screens/MeasurementReview';
 import { cor, paleta, FAMILIA, type NomeDeFonte, type NomeDePaleta } from '../src/theme';
+import { DIAS_PARA_REMEDIR_ESTRUTURAL } from '../src/ajustes';
 import { HexagonoWeb } from './HexagonoWeb';
 import { ANTERIORES, VOCABULARIO } from './dados';
 import { DISPOSITIVOS, modoPadrao, type Dispositivo, type ModoDeTeclado } from './dispositivos';
@@ -30,8 +31,7 @@ import { DISPOSITIVOS, modoPadrao, type Dispositivo, type ModoDeTeclado } from '
  * unica saida real e o app buscar os valores em vez de o harness adivinha-los.
  */
 const NUMEROS_DA_SESSAO = {
-  // Ver product_settings: 180 dias para medida estrutural voltar a ser proposta.
-  structuralRemeasureAfterDays: 180,
+  structuralRemeasureAfterDays: DIAS_PARA_REMEDIR_ESTRUTURAL,
   // Variacao abaixo da qual o vertice conta como estavel. Numero de produto sem
   // medicao nenhuma por tras; esta aqui, no ponto de chamada, para nao passar por
   // constante de dominio.
